@@ -182,7 +182,7 @@ def test_write_stage_to_kb_handles_missing_artifacts_gracefully(tmp_path: Path):
         kb_root, 2, "literature_extract", "run-2", ["missing.md"], stage_dir
     )[0]
     text = path.read_text(encoding="utf-8")
-    assert "Stage 04 (literature_extract) completed" in text
+    assert "Stage 02 (literature_extract) completed" in text
 
 
 def test_write_stage_to_kb_truncates_large_artifact_content(tmp_path: Path):

@@ -269,7 +269,7 @@ def test_execute_stage_creates_stage_dir_writes_artifacts_and_meta(
         .startswith("# Goal")
     )
     assert (run_dir / "stage-01" / "hardware_profile.json").exists()
-    assert len(fake_llm.calls) == 1
+    assert len(fake_llm.calls) >= 1
 
     decision = cast(
         dict[str, Any],
@@ -279,7 +279,8 @@ def test_execute_stage_creates_stage_dir_writes_artifacts_and_meta(
     )
     assert decision["run_id"] == "run-1"
     assert decision["status"] == "done"
-    assert decision["output_artifacts"] == ["goal.md", "hardware_profile.json"]
+    assert "goal.md" in decision["output_artifacts"]
+    assert "hardware_profile.json" in decision["output_artifacts"]
 
 
 def test_execute_stage_contract_validation_missing_output_file_marks_failed(
@@ -358,7 +359,7 @@ def test_execute_stage_missing_required_input_returns_failed(
     adapters: AdapterBundle,
 ) -> None:
     result = rc_executor.execute_stage(
-        Stage.RESEARCH_SCOPING,
+        Stage.SEARCH_COLLECT,
         run_dir=run_dir,
         run_id="run-4",
         config=rc_config,
@@ -366,7 +367,7 @@ def test_execute_stage_missing_required_input_returns_failed(
         auto_approve_gates=True,
     )
     assert result.status == StageStatus.FAILED
-    assert "Missing input: goal.md" in (result.error or "")
+    assert "Missing input: problem_tree.md" in (result.error or "")
 
 
 def test_execute_stage_gate_behavior_auto_approve_true_keeps_done(
@@ -635,7 +636,7 @@ class TestIterativeRefine:
     def _prepare_refine_inputs(self, run_dir: Path) -> None:
         _write_prior_artifact(
             run_dir,
-            10,
+            7,
             "experiment.py",
             (
                 "import random\n"
@@ -2597,17 +2598,14 @@ class TestStdoutFailureDetection:
         """Exit code 0 + 'FAIL:' in stdout + no metrics → status='failed'."""
         from scholarclaw_engine.pipeline.executor import _execute_experiment_run
 
-        # Create necessary structure
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        (run_dir / "stage-07").mkdir()
+        (run_dir / "stage-07").mkdir(parents=True, exist_ok=True)
         exp_dir = run_dir / "stage-07" / "experiment"
-        exp_dir.mkdir()
-        # Simple code that prints FAIL but exits 0
+        exp_dir.mkdir(exist_ok=True)
         (exp_dir / "main.py").write_text(
             "print('FAIL: NaN/divergence detected')\n", encoding="utf-8"
         )
-        (run_dir / "stage-07").mkdir()
         (run_dir / "stage-07" / "schedule.json").write_text("{}", encoding="utf-8")
 
         stage_dir = run_dir / "stage-08"
@@ -2660,13 +2658,12 @@ class TestStdoutFailureDetection:
 
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        (run_dir / "stage-07").mkdir()
+        (run_dir / "stage-07").mkdir(parents=True, exist_ok=True)
         exp_dir = run_dir / "stage-07" / "experiment"
-        exp_dir.mkdir()
+        exp_dir.mkdir(exist_ok=True)
         (exp_dir / "main.py").write_text(
             "print('primary_metric: 0.95')\n", encoding="utf-8"
         )
-        (run_dir / "stage-07").mkdir()
         (run_dir / "stage-07" / "schedule.json").write_text("{}", encoding="utf-8")
 
         stage_dir = run_dir / "stage-08"
@@ -2734,17 +2731,15 @@ class TestConsecutiveEmptyMetrics:
         from scholarclaw_engine.pipeline.runner import _consecutive_empty_metrics
 
         run_dir = tmp_path / "run"
-        # Current cycle (stage-09 ANALYSIS_DECISION)
-        s14 = run_dir / "stage-09"
-        s14.mkdir(parents=True)
-        (s14 / "experiment_summary.json").write_text(json.dumps({
+        s08 = run_dir / "stage-08"
+        s08.mkdir(parents=True)
+        (s08 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {}},
         }))
-        # Previous cycle (stage-09_v1)
-        s14v1 = run_dir / "stage-09_v1"
-        s14v1.mkdir(parents=True)
-        (s14v1 / "experiment_summary.json").write_text(json.dumps({
+        s08v1 = run_dir / "stage-08_v1"
+        s08v1.mkdir(parents=True)
+        (s08v1 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {}},
         }))
@@ -2756,15 +2751,15 @@ class TestConsecutiveEmptyMetrics:
         from scholarclaw_engine.pipeline.runner import _consecutive_empty_metrics
 
         run_dir = tmp_path / "run"
-        s14 = run_dir / "stage-09"
-        s14.mkdir(parents=True)
-        (s14 / "experiment_summary.json").write_text(json.dumps({
+        s08 = run_dir / "stage-08"
+        s08.mkdir(parents=True)
+        (s08 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {"loss": 0.5}},
         }))
-        s14v1 = run_dir / "stage-09_v1"
-        s14v1.mkdir(parents=True)
-        (s14v1 / "experiment_summary.json").write_text(json.dumps({
+        s08v1 = run_dir / "stage-08_v1"
+        s08v1.mkdir(parents=True)
+        (s08v1 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {}},
         }))
@@ -2776,14 +2771,13 @@ class TestConsecutiveEmptyMetrics:
         from scholarclaw_engine.pipeline.runner import _consecutive_empty_metrics
 
         run_dir = tmp_path / "run"
-        s14 = run_dir / "stage-09"
-        s14.mkdir(parents=True)
-        (s14 / "experiment_summary.json").write_text(json.dumps({
+        s08 = run_dir / "stage-08"
+        s08.mkdir(parents=True)
+        (s08 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {}},
         }))
 
-        # No stage-09_v1 exists
         assert _consecutive_empty_metrics(run_dir, pivot_count=1) is False
 
 

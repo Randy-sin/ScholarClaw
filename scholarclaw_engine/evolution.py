@@ -214,7 +214,7 @@ def _extract_decision_rationale(run_dir: Path) -> str:
     - ``rationale`` or ``reason`` key (direct)
     - ``raw_text_excerpt`` containing ``## Justification`` section (LLM output)
     """
-    for stage_dir in sorted(run_dir.glob("stage-15*"), reverse=True):
+    for stage_dir in sorted(run_dir.glob("stage-09*"), reverse=True):
         decision_file = stage_dir / "decision_structured.json"
         if decision_file.exists():
             try:

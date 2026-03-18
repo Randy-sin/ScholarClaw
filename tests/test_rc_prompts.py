@@ -123,7 +123,7 @@ class TestPromptManagerDefaults:
     def test_max_tokens(self) -> None:
         pm = PromptManager()
         assert pm.max_tokens("code_setup") == 8192
-        assert pm.max_tokens("paper_write") == 16384
+        assert pm.max_tokens("paper_write") == 8192
         assert pm.max_tokens("research_scoping") is None
 
     def test_block_topic_constraint(self) -> None:
@@ -282,7 +282,7 @@ class TestExportYaml:
         export_path = tmp_path / "exported.yaml"
         pm.export_yaml(export_path)
         data = yaml.safe_load(export_path.read_text(encoding="utf-8"))
-        assert data["stages"]["research_scoping"]["system"] == "CUSTOM"
+        assert data["stages"]["topic_init"]["system"] == "CUSTOM"
 
 
 # ---------------------------------------------------------------------------

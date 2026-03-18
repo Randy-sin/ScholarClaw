@@ -19,26 +19,26 @@ logger = logging.getLogger(__name__)
 
 # Stage-specific evaluation instructions
 _GATE_INSTRUCTIONS: dict[int, str] = {
-    5: (
+    3: (
         "Evaluate the quality of a literature screening result for academic research. "
         "Check: (1) Are the selected papers relevant to the research topic? "
         "(2) Is there sufficient coverage of key approaches? "
         "(3) Are low-quality or irrelevant papers properly filtered out?"
     ),
-    9: (
+    6: (
         "Evaluate the quality of an experiment design for academic research. "
         "Check: (1) Are there proper baselines for comparison? "
         "(2) Are ablation studies planned? "
         "(3) Are statistical methods and metrics well-chosen? "
         "(4) Is the experiment reproducible?"
     ),
-    15: (
+    9: (
         "Evaluate whether a research PROCEED/PIVOT decision is well-justified. "
         "Check: (1) Is there sufficient evidence to support the decision? "
         "(2) Are alternative interpretations considered? "
         "(3) Is the rationale logically sound?"
     ),
-    20: (
+    11: (
         "Evaluate the overall quality of an academic paper. "
         "Check: (1) Is the contribution novel and clearly stated? "
         "(2) Is the methodology sound and well-described? "
@@ -161,7 +161,7 @@ class ResearchPRMGate:
         """Evaluate a stage output using majority-vote PRM scoring.
 
         Args:
-            stage_num: Pipeline stage number (5, 9, 15, or 20).
+            stage_num: Pipeline stage number (3, 6, 9, or 11).
             output_text: The stage output text to evaluate.
             custom_instruction: Override the default evaluation instruction.
 

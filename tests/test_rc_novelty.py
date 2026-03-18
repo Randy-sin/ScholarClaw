@@ -409,7 +409,7 @@ class TestHypothesisGenNoveltyIntegration:
             mock_search.return_value = []
             result = _execute_hypothesis_gen(stage_dir, run_dir, config, adapters)
 
-        assert result.stage.name == "HYPOTHESIS_GEN"
+        assert result.stage.name == "HYPOTHESIS_SYNTHESIS"
         assert result.status.name == "DONE"
         # hypotheses.md always written
         assert (stage_dir / "hypotheses.md").exists()

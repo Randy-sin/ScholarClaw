@@ -24,10 +24,10 @@ class TestHeartbeatWriting:
         assert hb_path.exists()
 
     def test_heartbeat_contains_required_fields(self, tmp_path: Path) -> None:
-        rc_runner._write_heartbeat(tmp_path, Stage.HYPOTHESIS_GEN, "run-hb-2")
+        rc_runner._write_heartbeat(tmp_path, Stage.HYPOTHESIS_SYNTHESIS, "run-hb-2")
         data = json.loads((tmp_path / "heartbeat.json").read_text())
         assert data["pid"] == os.getpid()
-        assert data["last_stage"] == 8
+        assert data["last_stage"] == 5
         assert data["last_stage_name"] == "HYPOTHESIS_SYNTHESIS"
         assert data["run_id"] == "run-hb-2"
         assert "timestamp" in data
@@ -37,7 +37,7 @@ class TestHeartbeatWriting:
         data1 = json.loads((tmp_path / "heartbeat.json").read_text())
         rc_runner._write_heartbeat(tmp_path, Stage.PAPER_WRITE, "run-1")
         data2 = json.loads((tmp_path / "heartbeat.json").read_text())
-        assert data2["last_stage"] == 17
+        assert data2["last_stage"] == 10
         assert data1["last_stage"] == 1
 
 

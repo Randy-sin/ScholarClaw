@@ -3805,7 +3805,7 @@ def _execute_iterative_refine(
         final_dir = stage_dir / "experiment_final"
         # Copy latest experiment code as final (directory or single file)
         copied = False
-        for stage_num in (12, 10):
+        for stage_num in (8, 7):
             src_dir = run_dir / f"stage-{stage_num:02d}" / "experiment"
             if src_dir.is_dir():
                 if final_dir.exists():
@@ -3813,7 +3813,6 @@ def _execute_iterative_refine(
                 shutil.copytree(src_dir, final_dir)
                 copied = True
                 break
-            # Also check for single experiment.py
             src_file = run_dir / f"stage-{stage_num:02d}" / "experiment.py"
             if src_file.is_file():
                 (stage_dir / "experiment_final.py").write_text(
@@ -8275,90 +8274,90 @@ def _execute_citation_verify(
     )
 
 
-def _execute_research_scoping(run_dir, config, llm, **kw):
+def _execute_research_scoping(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: topic_init + problem_decompose."""
-    r1 = _execute_topic_init(run_dir, config, llm, **kw)
+    r1 = _execute_topic_init(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.RESEARCH_SCOPING, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_problem_decompose(run_dir, config, llm, **kw)
+    r2 = _execute_problem_decompose(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.RESEARCH_SCOPING, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_search_collect(run_dir, config, llm, **kw):
+def _execute_search_collect(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: search_strategy + literature_collect."""
-    r1 = _execute_search_strategy(run_dir, config, llm, **kw)
+    r1 = _execute_search_strategy(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.SEARCH_COLLECT, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_literature_collect(run_dir, config, llm, **kw)
+    r2 = _execute_literature_collect(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.SEARCH_COLLECT, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_hypothesis_synthesis(run_dir, config, llm, **kw):
+def _execute_hypothesis_synthesis(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: synthesis + hypothesis_gen."""
-    r1 = _execute_synthesis(run_dir, config, llm, **kw)
+    r1 = _execute_synthesis(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.HYPOTHESIS_SYNTHESIS, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_hypothesis_gen(run_dir, config, llm, **kw)
+    r2 = _execute_hypothesis_gen(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.HYPOTHESIS_SYNTHESIS, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_code_setup(run_dir, config, llm, **kw):
+def _execute_code_setup(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: code_generation + resource_planning."""
-    r1 = _execute_code_generation(run_dir, config, llm, **kw)
+    r1 = _execute_code_generation(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.CODE_SETUP, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_resource_planning(run_dir, config, llm, **kw)
+    r2 = _execute_resource_planning(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.CODE_SETUP, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_experiment_execute(run_dir, config, llm, **kw):
+def _execute_experiment_execute(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: experiment_run + iterative_refine."""
-    r1 = _execute_experiment_run(run_dir, config, llm, **kw)
+    r1 = _execute_experiment_run(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.EXPERIMENT_EXECUTE, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_iterative_refine(run_dir, config, llm, **kw)
+    r2 = _execute_iterative_refine(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.EXPERIMENT_EXECUTE, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_analysis_decision(run_dir, config, llm, **kw):
+def _execute_analysis_decision(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: result_analysis + research_decision."""
-    r1 = _execute_result_analysis(run_dir, config, llm, **kw)
+    r1 = _execute_result_analysis(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.ANALYSIS_DECISION, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_research_decision(run_dir, config, llm, **kw)
+    r2 = _execute_research_decision(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.ANALYSIS_DECISION, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_paper_write(run_dir, config, llm, **kw):
+def _execute_paper_write(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: paper_outline + paper_draft."""
-    r1 = _execute_paper_outline(run_dir, config, llm, **kw)
+    r1 = _execute_paper_outline(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.PAPER_WRITE, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_paper_draft(run_dir, config, llm, **kw)
+    r2 = _execute_paper_draft(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.PAPER_WRITE, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
 
 
-def _execute_quality_check(run_dir, config, llm, **kw):
+def _execute_quality_check(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: peer_review + paper_revision + quality_gate."""
-    r1 = _execute_peer_review(run_dir, config, llm, **kw)
+    r1 = _execute_peer_review(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.QUALITY_CHECK, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_paper_revision(run_dir, config, llm, **kw)
+    r2 = _execute_paper_revision(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r2.status != StageStatus.DONE:
         return StageResult(stage=Stage.QUALITY_CHECK, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
-    r3 = _execute_quality_gate(run_dir, config, llm, **kw)
+    r3 = _execute_quality_gate(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.QUALITY_CHECK, status=r3.status, artifacts=r1.artifacts + r2.artifacts + r3.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()) + (r3.evidence_refs or ()))
 
 
-def _execute_export_verify(run_dir, config, llm, **kw):
+def _execute_export_verify(stage_dir, run_dir, config, adapters, *, llm=None, prompts=None):
     """Merged: knowledge_archive + export_publish + citation_verify."""
-    r1 = _execute_knowledge_archive(run_dir, config, llm, **kw)
+    r1 = _execute_knowledge_archive(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r1.status != StageStatus.DONE:
         return StageResult(stage=Stage.EXPORT_VERIFY, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
-    r2 = _execute_export_publish(run_dir, config, llm, **kw)
+    r2 = _execute_export_publish(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     if r2.status != StageStatus.DONE:
         return StageResult(stage=Stage.EXPORT_VERIFY, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
-    r3 = _execute_citation_verify(run_dir, config, llm, **kw)
+    r3 = _execute_citation_verify(stage_dir, run_dir, config, adapters, llm=llm, prompts=prompts)
     return StageResult(stage=Stage.EXPORT_VERIFY, status=r3.status, artifacts=r1.artifacts + r2.artifacts + r3.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()) + (r3.evidence_refs or ()))
 
 

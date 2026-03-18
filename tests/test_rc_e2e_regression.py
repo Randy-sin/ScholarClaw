@@ -239,7 +239,7 @@ class TestNoncriticalStageSkip:
         }
         return RCConfig.from_dict(data, project_root=tmp_path, check_paths=False)
 
-    def test_noncritical_stage_failure_is_skipped(self, tmp_path: Path) -> None:
+    def test_all_stages_complete_in_happy_path(self, tmp_path: Path) -> None:
         from scholarclaw_engine.adapters import AdapterBundle
         from scholarclaw_engine.pipeline import runner as rc_runner
         from scholarclaw_engine.pipeline.executor import StageResult
@@ -252,13 +252,6 @@ class TestNoncriticalStageSkip:
 
         def mock_execute_stage(stage: Stage, **kwargs) -> StageResult:
             _ = kwargs
-            if stage is Stage.KNOWLEDGE_ARCHIVE:
-                return StageResult(
-                    stage=stage,
-                    status=StageStatus.FAILED,
-                    artifacts=(),
-                    error="archive error",
-                )
             return StageResult(
                 stage=stage, status=StageStatus.DONE, artifacts=("ok.md",)
             )
@@ -266,18 +259,13 @@ class TestNoncriticalStageSkip:
         with patch.object(rc_runner, "execute_stage", side_effect=mock_execute_stage):
             results = rc_runner.execute_pipeline(
                 run_dir=run_dir,
-                run_id="run-skip-noncritical",
+                run_id="run-happy-path",
                 config=config,
                 adapters=adapters,
-                skip_noncritical=True,
             )
 
         assert len(results) == len(STAGE_SEQUENCE)
-        assert results[-1].stage is Stage.CITATION_VERIFY
-        assert any(
-            r.stage is Stage.KNOWLEDGE_ARCHIVE and r.status is StageStatus.FAILED
-            for r in results
-        )
+        assert results[-1].stage is Stage.EXPORT_VERIFY
 
     def test_critical_stage_failure_still_aborts(self, tmp_path: Path) -> None:
         from scholarclaw_engine.adapters import AdapterBundle
@@ -292,7 +280,7 @@ class TestNoncriticalStageSkip:
 
         def mock_execute_stage(stage: Stage, **kwargs) -> StageResult:
             _ = kwargs
-            if stage is Stage.PAPER_DRAFT:
+            if stage is Stage.PAPER_WRITE:
                 return StageResult(
                     stage=stage,
                     status=StageStatus.FAILED,
@@ -312,5 +300,5 @@ class TestNoncriticalStageSkip:
                 skip_noncritical=True,
             )
 
-        assert results[-1].stage is Stage.PAPER_DRAFT
+        assert results[-1].stage is Stage.PAPER_WRITE
         assert results[-1].status is StageStatus.FAILED

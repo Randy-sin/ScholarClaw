@@ -112,8 +112,9 @@ class PromptManager:
             return
 
         for stage_name, stage_data in (data.get("stages") or {}).items():
-            if stage_name in self._stages and isinstance(stage_data, dict):
-                self._stages[stage_name].update(stage_data)
+            key = self._STAGE_ALIASES.get(stage_name, stage_name)
+            if key in self._stages and isinstance(stage_data, dict):
+                self._stages[key].update(stage_data)
             else:
                 logger.warning("Unknown stage in prompts file: %s", stage_name)
 
@@ -129,6 +130,20 @@ class PromptManager:
 
     # -- primary API ------------------------------------------------------
 
+    # New 12-stage names → old prompt keys (prompts are still keyed by
+    # the original fine-grained stage names for backward compatibility).
+    _STAGE_ALIASES: dict[str, str] = {
+        "research_scoping": "topic_init",
+        "search_collect": "search_strategy",
+        "hypothesis_synthesis": "synthesis",
+        "code_setup": "code_generation",
+        "experiment_execute": "experiment_design",
+        "analysis_decision": "result_analysis",
+        "paper_write": "paper_outline",
+        "quality_check": "quality_gate",
+        "export_verify": "export_publish",
+    }
+
     def for_stage(
         self,
         stage: str,
@@ -141,7 +156,8 @@ class PromptManager:
         If *evolution_overlay* is provided, it is appended to the user prompt
         so the LLM can learn from prior run lessons.
         """
-        entry = self._stages[stage]
+        key = self._STAGE_ALIASES.get(stage, stage)
+        entry = self._stages[key]
         kw = {k: str(v) for k, v in kwargs.items()}
         user_text = _render(entry["user"], kw)
         if evolution_overlay:
@@ -155,20 +171,24 @@ class PromptManager:
 
     def system(self, stage: str) -> str:
         """Return the raw system prompt template for *stage*."""
-        return self._stages[stage]["system"]
+        key = self._STAGE_ALIASES.get(stage, stage)
+        return self._stages[key]["system"]
 
     def user(self, stage: str, **kwargs: Any) -> str:
         """Return the rendered user prompt for *stage*."""
+        key = self._STAGE_ALIASES.get(stage, stage)
         return _render(
-            self._stages[stage]["user"],
+            self._stages[key]["user"],
             {k: str(v) for k, v in kwargs.items()},
         )
 
     def json_mode(self, stage: str) -> bool:
-        return self._stages[stage].get("json_mode", False)
+        key = self._STAGE_ALIASES.get(stage, stage)
+        return self._stages[key].get("json_mode", False)
 
     def max_tokens(self, stage: str) -> int | None:
-        return self._stages[stage].get("max_tokens")
+        key = self._STAGE_ALIASES.get(stage, stage)
+        return self._stages[key].get("max_tokens")
 
     # -- blocks -----------------------------------------------------------
 
@@ -196,7 +216,8 @@ class PromptManager:
         return list(self._stages.keys())
 
     def has_stage(self, stage: str) -> bool:
-        return stage in self._stages
+        key = self._STAGE_ALIASES.get(stage, stage)
+        return key in self._stages
 
     def export_yaml(self, path: Path) -> None:
         """Write current prompts (defaults + overrides) to a YAML file."""

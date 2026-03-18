@@ -45,7 +45,7 @@ llm:
     - "gpt-4o-mini"
 
 security:
-  hitl_required_stages: [5, 9, 20]
+  hitl_required_stages: [3, 6, 11]
   allow_publish_without_approval: false
   redact_sensitive_logs: true
 

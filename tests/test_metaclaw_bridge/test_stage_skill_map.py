@@ -31,7 +31,7 @@ def test_stage_config_has_required_keys():
 
 
 def test_get_stage_config_known():
-    cfg = get_stage_config("hypothesis_gen")
+    cfg = get_stage_config("hypothesis_synthesis")
     assert cfg["task_type"] == "research"
     assert "hypothesis-formulation" in cfg["skills"]
 
