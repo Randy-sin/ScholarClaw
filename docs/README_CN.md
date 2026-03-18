@@ -13,7 +13,7 @@
   <a href="#上手">上手</a> &middot;
   <a href="#内部机制">内部机制</a> &middot;
   <a href="#引用可信度">引用可信度</a> &middot;
-  <a href="../README.md">English</a>
+  <a href="../README.md">📖 English Docs / 英文文档</a>
 </p>
 
 ---

@@ -13,7 +13,7 @@
   <a href="#get-started">Get Started</a> &middot;
   <a href="#under-the-hood">Under the Hood</a> &middot;
   <a href="#trust-but-verify">Trust but Verify</a> &middot;
-  <a href="docs/README_CN.md">中文</a>
+  <a href="docs/README_CN.md">📖 中文文档 / Chinese Docs</a>
 </p>
 
 ---
