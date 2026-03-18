@@ -432,7 +432,175 @@ FigureAgent 还集成了 **Nano Banana**（基于 Gemini `gemini-2.5-flash-image
 
 ---
 
-## 十、团队与开源
+## 十、ScholarClaw 与 OpenClaw 的集成架构
+
+ScholarClaw 不是一个孤立的命令行工具——它被设计为 **OpenClaw 生态系统的原生技能（Skill）**，通过 OpenClaw 的技能发现机制、适配器协议和消息通道与用户交互。
+
+### 10.1 技能发现：用户说一句话，OpenClaw 自动调度
+
+OpenClaw 的技能系统通过扫描 `skills/<name>/SKILL.md` 文件来发现可用技能。ScholarClaw 在 `skills/scholarclaw/SKILL.md` 中声明了自己的触发条件：
+
+```
+触发条件：
+- 用户说 "research [topic]"、"write a paper about [topic]"、"investigate [topic]"
+- 用户要求运行自主研究流水线
+- 用户要求从零生成研究论文
+- 用户直接提到 "ScholarClaw"
+```
+
+当用户在 OpenClaw 的任何消息通道（Telegram、Discord、Slack、Web、iMessage 等）中发送类似消息时，OpenClaw 的技能匹配系统将消息路由到 ScholarClaw。具体流程：
+
+```
+用户："帮我研究注意力机制在时序预测中的效率"
+  │
+  ▼
+OpenClaw 消息入口（任意通道）
+  │
+  ▼
+技能匹配引擎（resolveSkillCommandInvocation）
+  ├─ 匹配 /scholarclaw 命令，或
+  └─ LLM 根据系统提示中注入的 SKILL.md 内容自主判断
+  │
+  ▼
+改写消息体："Use the scholarclaw skill for this request. User input: ..."
+  │
+  ▼
+OpenClaw Agent 执行：
+  ├─ 读取 SKILL.md → 理解安装和运行方式
+  ├─ 检查环境（venv、依赖）
+  ├─ 运行 scholarclaw run --topic "..." --auto-approve
+  └─ 收集产出物，通过消息通道返回给用户
+```
+
+**用户不需要知道 ScholarClaw 的存在**——他们只需要对 OpenClaw 说"帮我研究 X"，OpenClaw 自动完成克隆、安装、配置、执行和结果返回。
+
+### 10.2 六端口适配器协议：OpenClaw 能力的按需注入
+
+ScholarClaw 定义了 6 个**类型化适配器协议**（`adapters.py`），每个协议对应 OpenClaw 的一种平台能力。当 OpenClaw 提供某种能力时，ScholarClaw 自动消费；当能力不可用时，流水线照常运行——**零耦合，按需增强**。
+
+| 适配器 | 协议接口 | OpenClaw 提供的能力 | 流水线中的用途 |
+|--------|---------|-------------------|--------------|
+| **CronAdapter** | `schedule_resume(run_id, stage_id, reason) → str` | 定时任务调度 | 安排流水线在指定时间恢复执行（如隔夜跑长实验） |
+| **MessageAdapter** | `notify(channel, subject, body) → str` | 消息推送（Discord/Slack/Telegram） | 阶段开始时通知、门控审批请求推送 |
+| **MemoryAdapter** | `append(namespace, content) → str` | 跨会话持久化记忆 | 记录阶段状态到 `stages` 命名空间、门控决策到 `gates` 命名空间 |
+| **SessionsAdapter** | `spawn(name, command) → str` | 并行子会话 | 为并发阶段派生独立执行环境 |
+| **WebFetchAdapter** | `fetch(url) → FetchResponse` | 网页抓取 | 第 3 阶段验证文献源可用性 |
+| **BrowserAdapter** | `open(url) → BrowserPage` | 浏览器自动化 | 采集需要 JavaScript 渲染的论文页面 |
+
+**代码级证据——消息通知（executor.py）：**
+
+```python
+# 阶段开始时，通过 OpenClaw 的消息通道通知用户
+if bridge.use_message and config.notifications.on_stage_start:
+    adapters.message.notify(
+        config.notifications.channel,
+        f"stage-{int(stage):02d}-start",
+        f"Starting {stage.name}",
+    )
+
+# 门控阶段需要审批时，推送审批请求
+if bridge.use_message and config.notifications.on_gate_required:
+    adapters.message.notify(
+        config.notifications.channel,
+        f"gate-{int(stage):02d}",
+        f"Approval required for {stage.name}",
+    )
+```
+
+**代码级证据——跨会话记忆（executor.py）：**
+
+```python
+# 将阶段运行状态持久化到 OpenClaw 的记忆系统
+if bridge.use_memory:
+    adapters.memory.append("stages", f"{run_id}:{int(stage)}:running")
+    # ... 阶段完成后 ...
+    adapters.memory.append("stages", f"{run_id}:{int(stage)}:{result.status.value}")
+```
+
+**代码级证据——网页抓取验证（executor.py）：**
+
+```python
+# 第 3 阶段：利用 OpenClaw 的 web_fetch 能力验证文献源
+if config.openclaw_bridge.use_web_fetch:
+    for src in sources:
+        response = adapters.web_fetch.fetch(str(src.get("url", "")))
+        src["status"] = (
+            "verified" if response.status_code in (200, 301, 302, 405)
+            else "unreachable"
+        )
+```
+
+这种设计意味着：
+- **独立运行时**（CLI 模式）：使用默认的 Recording 实现，流水线完全自包含
+- **OpenClaw 内运行时**：OpenClaw 注入真实的适配器实现，ScholarClaw 自动获得消息推送、记忆持久化、网页抓取等增强能力
+
+### 10.3 论文导出通道：从研究产物到用户手中
+
+ScholarClaw 的产出物通过 OpenClaw 的多通道消息系统返回给用户：
+
+```
+ScholarClaw 流水线完成
+  │
+  ▼
+产出物目录 artifacts/sc-YYYYMMDD-HHMMSS-<hash>/
+  ├── deliverables/paper.tex        ← LaTeX 源文件
+  ├── deliverables/references.bib   ← 验证过的引用
+  ├── paper_draft.md                ← Markdown 初稿
+  ├── peer_review.md                ← 评审报告
+  └── verification_report.json      ← 引用审计
+  │
+  ▼
+OpenClaw Agent 汇总结果
+  │
+  ▼
+通过用户所在的消息通道返回
+  ├── Telegram / Discord / Slack → 发送摘要 + 关键文件
+  ├── Web UI → 展示完整产出目录
+  └── CLI → 打印产出路径
+```
+
+OpenClaw 还内置了 `/export-paper` 命令（`commands-export-paper.ts`），可以将会话中的学术内容导出为格式化的 HTML 或 PDF 报告，与 ScholarClaw 的 Markdown 产出无缝衔接。
+
+### 10.4 与 OpenClaw 其他研究技能的协作
+
+ScholarClaw 在 OpenClaw 生态中并非孤立存在，它与其他研究类技能形成互补：
+
+| 技能 | 定位 | 与 ScholarClaw 的关系 |
+|------|------|---------------------|
+| **academic-lobster** | 轻量级学术分析——输入主题或 PDF，输出结构化研究报告 | ScholarClaw 的"轻量替代"：不跑实验，不生成 LaTeX，但速度快、适合初步探索 |
+| **scientific-lobster** | 8 阶段科学研究流水线——文献综述、假设、实验设计 | ScholarClaw 的"前身"：ScholarClaw 将其扩展为 23 阶段，增加了代码执行、自修复、引用验证 |
+| **ScholarClaw** | 23 阶段全自主研究引擎——从想法到可编译论文 | 完整版：真实文献 API、沙箱实验、四层引用验证、会议级 LaTeX |
+
+用户可以根据需求选择不同深度的研究工具：
+- 快速了解一个领域 → `academic-lobster`（分钟级）
+- 结构化研究分析 → `scientific-lobster`（小时级）
+- 完整论文生成 → `ScholarClaw`（数小时级）
+
+### 10.5 ACP 协议：无 API Key 的 Agent 互操作
+
+ScholarClaw 通过 **ACP（Agent Client Protocol）** 支持以任何兼容的 AI 编码助手作为 LLM 后端，无需单独配置 API Key：
+
+```yaml
+llm:
+  provider: "acp"
+  acp:
+    agent: "claude"    # 或 codex / gemini / kimi / opencode
+    cwd: "."
+```
+
+ACP 客户端（`acp_client.py`）通过 OpenClaw 的 `acpx` 扩展（位于 `~/.openclaw/extensions/acpx`）与 Agent 通信，维持**单一持久会话**贯穿全部 23 个阶段——这意味着 Agent 在整个流水线执行过程中保持完整的上下文，不会因为阶段切换而丢失信息。
+
+| Agent | CLI 命令 | 提供方 |
+|-------|---------|--------|
+| Claude Code | `claude` | Anthropic |
+| Codex CLI | `codex` | OpenAI |
+| Gemini CLI | `gemini` | Google |
+| OpenCode | `opencode` | SST |
+| Kimi CLI | `kimi` | Moonshot |
+
+---
+
+## 十一、团队与开源
 
 - **开源协议**：MIT License
 - **代码仓库**：[github.com/Randy-sin/ScholarClaw](https://github.com/Randy-sin/ScholarClaw)
