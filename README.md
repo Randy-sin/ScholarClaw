@@ -3,392 +3,261 @@
 </p>
 
 <p align="center">
-  <strong>From idea to paper. Fully autonomous. 23 stages. Zero hallucinated citations.</strong>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Randy-sin/ScholarClaw/stargazers"><img src="https://img.shields.io/github/stars/Randy-sin/ScholarClaw?style=social" alt="GitHub Stars"></a>&nbsp;
+  <a href="https://github.com/Randy-sin/ScholarClaw/stargazers"><img src="https://img.shields.io/github/stars/Randy-sin/ScholarClaw?style=social" alt="Stars"></a>&nbsp;
   <a href="https://github.com/Randy-sin/ScholarClaw/network/members"><img src="https://img.shields.io/github/forks/Randy-sin/ScholarClaw?style=social" alt="Forks"></a>&nbsp;
-  <a href="https://github.com/Randy-sin/ScholarClaw/issues"><img src="https://img.shields.io/github/issues/Randy-sin/ScholarClaw?color=orange" alt="Issues"></a>&nbsp;
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>&nbsp;
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white" alt="Python 3.11+"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>&nbsp;
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white" alt="Python"></a>
 </p>
 
 <p align="center">
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-how-it-works">How It Works</a> •
-  <a href="#-key-capabilities">Capabilities</a> •
-  <a href="#%EF%B8%8F-configuration">Configuration</a> •
-  <a href="docs/README_CN.md">中文文档</a>
+  <a href="#get-started">Get Started</a> &middot;
+  <a href="#under-the-hood">Under the Hood</a> &middot;
+  <a href="#trust-but-verify">Trust but Verify</a> &middot;
+  <a href="docs/README_CN.md">中文</a>
 </p>
 
 ---
 
-> **ScholarClaw** takes a single research topic and autonomously produces a conference-grade academic paper — complete with real literature from arXiv, Semantic Scholar & OpenAlex, hardware-aware sandbox experiments, multi-agent peer review, and compile-ready LaTeX for NeurIPS / ICML / ICLR.
+ScholarClaw is an end-to-end research automation engine.
+You describe a research direction in plain text; it comes back with a draft paper, real references, executed experiments, and LaTeX you can compile on Overleaf.
+
+**The problem it solves:** writing an academic paper involves dozens of tedious, error-prone steps — searching literature, designing experiments, running code, formatting citations, typesetting LaTeX. ScholarClaw chains these steps into a single deterministic pipeline so you can focus on the ideas instead of the plumbing.
 
 ---
 
-## ✨ Highlights
-
-<table>
-<tr>
-<td width="50%">
-
-**🔬 Real Research, Not Summaries**
-
-Queries live academic APIs (arXiv, Semantic Scholar, OpenAlex), runs actual experiments in sandboxed environments, and verifies every citation through a 4-layer pipeline.
-
-</td>
-<td width="50%">
-
-**🧠 Self-Healing & Self-Steering**
-
-Experiments that crash get auto-diagnosed and repaired. Hypotheses that fail trigger an autonomous PIVOT to a new research direction — no human needed.
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-**📝 Conference-Ready Output**
-
-Generates 5,000–6,500 word papers with proper LaTeX targeting NeurIPS, ICML, or ICLR. Upload `deliverables/` to Overleaf and compile directly.
-
-</td>
-<td width="50%">
-
-**🛡️ Zero Hallucinated References**
-
-4-layer citation verification: arXiv ID check → CrossRef/DataCite DOI → Semantic Scholar fuzzy match → LLM relevance scoring. Fake refs get killed.
-
-</td>
-</tr>
-</table>
-
----
-
-## 📦 What You Get
-
-```
-scholarclaw run --topic "Efficient attention for long-sequence time-series transformers"
-```
-
-```
-artifacts/sc-20260318-143022-a7f3/
-├── deliverables/
-│   ├── paper.tex              # Conference-ready LaTeX
-│   ├── references.bib         # Verified BibTeX (zero hallucinations)
-│   ├── neurips_2025.sty       # Template style file
-│   └── figures/               # Auto-generated plots
-├── paper_draft.md             # Full paper in Markdown (8 sections)
-├── experiments/
-│   ├── run_001/               # Code + stdout + metrics.json
-│   ├── run_002/               # Self-healed retry
-│   └── comparison_charts/     # Error bars, confidence intervals
-├── peer_review.md             # Multi-agent review (methodology + clarity)
-├── verification_report.json   # 4-layer citation integrity audit
-└── evolution/                 # Lessons learned for future runs
-```
-
----
-
-## 🚀 Quick Start
+## Get Started
 
 ```bash
-# 1️⃣  Clone
-git clone https://github.com/Randy-sin/ScholarClaw.git
-cd ScholarClaw
-
-# 2️⃣  Install
+git clone https://github.com/Randy-sin/ScholarClaw.git && cd ScholarClaw
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-
-# 3️⃣  Configure
-cp config.scholarclaw.example.yaml config.scholarclaw.yaml
-# → Edit config.scholarclaw.yaml: set your LLM API key
-
-# 4️⃣  Run
-export OPENAI_API_KEY="sk-..."
-scholarclaw run --topic "Your research idea" --auto-approve
+cp config.scholarclaw.example.yaml config.scholarclaw.yaml   # edit: add your API key
+scholarclaw run --topic "your research question" --auto-approve
 ```
 
+Results land in `artifacts/`. The `deliverables/` subfolder is Overleaf-ready.
+
 <details>
-<summary><b>📋 Minimal config.scholarclaw.yaml</b></summary>
+<summary>Minimal YAML config</summary>
 
 ```yaml
 project:
-  name: "my-research"
-
+  name: "my-project"
 research:
-  topic: "Your research topic"
-
+  topic: "your topic"
 llm:
   base_url: "https://api.openai.com/v1"
   api_key_env: "OPENAI_API_KEY"
   primary_model: "gpt-4o"
-  fallback_models: ["gpt-4o-mini"]
-
 experiment:
   mode: "sandbox"
   sandbox:
     python_path: ".venv/bin/python"
 ```
-
 </details>
 
 ---
 
-## 🔬 How It Works
+## What Comes Out
 
-**23 stages across 8 phases.** Gate stages pause for human approval (or skip with `--auto-approve`).
+A single run produces a self-contained research artifact:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│  Phase A ─ Research Scoping         Phase E ─ Experiment Execution  │
-│    1  TOPIC_INIT                      12  EXPERIMENT_RUN            │
-│    2  PROBLEM_DECOMPOSE               13  ITERATIVE_REFINE  ← heal │
-│                                                                     │
-│  Phase B ─ Literature Discovery     Phase F ─ Analysis & Decision   │
-│    3  SEARCH_STRATEGY                 14  RESULT_ANALYSIS   ← multi │
-│    4  LITERATURE_COLLECT  ← API       15  RESEARCH_DECISION ← pivot │
-│    5  LITERATURE_SCREEN   [gate]                                    │
-│    6  KNOWLEDGE_EXTRACT             Phase G ─ Paper Writing         │
-│                                       16  PAPER_OUTLINE             │
-│  Phase C ─ Knowledge Synthesis        17  PAPER_DRAFT               │
-│    7  SYNTHESIS                       18  PEER_REVIEW      ← check │
-│    8  HYPOTHESIS_GEN      ← debate   19  PAPER_REVISION            │
-│                                                                     │
-│  Phase D ─ Experiment Design        Phase H ─ Finalization          │
-│    9  EXPERIMENT_DESIGN   [gate]      20  QUALITY_GATE     [gate]  │
-│   10  CODE_GENERATION                 21  KNOWLEDGE_ARCHIVE         │
-│   11  RESOURCE_PLANNING               22  EXPORT_PUBLISH   ← LaTeX │
-│                                       23  CITATION_VERIFY  ← 4-lyr │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-> **Decision loops:** Stage 15 evaluates results and autonomously decides **PROCEED**, **REFINE** (→ Stage 13), or **PIVOT** (→ Stage 8). All previous artifacts are versioned.
+| File | What it is |
+|------|-----------|
+| `paper_draft.md` | 5 000 – 6 500 word draft covering introduction through conclusion |
+| `paper.tex` + `*.sty` | Compile-ready LaTeX (NeurIPS / ICML / ICLR) |
+| `references.bib` | BibTeX entries — each one verified against live databases |
+| `experiments/` | Generated Python code, stdout logs, `metrics.json` per run |
+| `charts/` | Comparison plots with error bars |
+| `peer_review.md` | Automated critique (methodology + clarity) |
+| `verification_report.json` | Per-reference audit trail |
 
 ---
 
-## 🎯 Key Capabilities
+## Under the Hood
 
-### 📚 Real Literature from Live APIs
-
-| Source | What It Provides | Rate Limit |
-|--------|-----------------|------------|
-| **arXiv API** | Full-text search, PDF links, metadata | Unlimited |
-| **Semantic Scholar** | Titles, DOIs, citation counts, abstracts | 100 req/5min (free) |
-| **OpenAlex** | Broad coverage, institution data | Generous |
-
-Auto-deduplication via DOI → arXiv ID → fuzzy title matching. Circuit breaker with graceful degradation when APIs are down.
-
-### 🔍 4-Layer Citation Verification
-
-Every reference in the final paper passes through:
-
-| Layer | Method | Catches |
-|-------|--------|---------|
-| **L1** | arXiv API lookup | Fake arXiv IDs |
-| **L2** | CrossRef + DataCite | Invalid DOIs, title mismatches |
-| **L3** | Semantic Scholar | Non-existent papers (fuzzy match ≥0.80) |
-| **L4** | LLM relevance scoring | Real but irrelevant padding citations |
-
-Failed citations are removed. Uncited references are pruned from `.bib`.
-
-### 🖥️ Hardware-Aware Experiments
-
-Auto-detects compute tier and adapts generated code:
-
-| Tier | Detection | Generated Code |
-|------|-----------|---------------|
-| **High** | NVIDIA GPU ≥8 GB | Full PyTorch + CUDA |
-| **Limited** | NVIDIA <8 GB / Apple MPS | Lightweight models, smaller batches |
-| **CPU-only** | No GPU | NumPy + scikit-learn only |
-
-### 🔧 Self-Healing Execution
+The pipeline is split into **phases**, each responsible for one concern:
 
 ```
-Code runs → fails?
-  ├─ Read traceback
-  ├─ LLM diagnoses root cause
-  ├─ Generate targeted patch
-  ├─ Re-run (up to 3 rounds)
-  └─ Capture partial results on timeout
+ Scoping        → break the topic into structured sub-questions
+ Literature     → search arXiv / Semantic Scholar / OpenAlex, screen, extract
+ Synthesis      → cluster findings, spot gaps, form hypotheses
+ Design         → plan experiments, generate hardware-aware code
+ Execution      → run in sandbox, detect failures, auto-repair
+ Analysis       → evaluate results, decide: continue / adjust / pivot
+ Writing        → outline → draft → review → revise
+ Finalization   → quality check, LaTeX export, citation audit
 ```
 
-Sandbox features: AST validation, import whitelisting, NaN/Inf detection, memory limits.
+Two feedback loops keep the pipeline from going off the rails:
 
-### 🤖 Multi-Agent Peer Review
+- **Adjust** — results are promising but noisy → tweak parameters, re-run.
+- **Pivot** — hypothesis is dead → generate a new one, restart from synthesis.
 
-| Reviewer | Focus |
-|----------|-------|
-| **Methodology Agent** | Experiment sufficiency, confounds, reproducibility, statistical validity |
-| **Clarity Agent** | Argument flow, term definitions, figure descriptions, readability |
-
-Plus an **evidence-claim consistency check**: if the paper claims N experiments but only M ran, it gets flagged.
-
-### 🔄 PIVOT / REFINE Decision Loop
-
-Stage 15 evaluates experimental results against hypotheses:
-
-| Decision | Trigger | Action |
-|----------|---------|--------|
-| **PROCEED** | Results support hypothesis | Continue to paper writing |
-| **REFINE** | Promising but noisy | Tweak params → re-run experiments |
-| **PIVOT** | Hypothesis unsupported | Generate new hypotheses → restart |
-
-Each cycle auto-versions all artifacts for full traceability.
+Every loop iteration snapshots all artifacts so nothing is lost.
 
 ---
 
-## 📐 Conference Templates
+## Trust but Verify
 
-| Conference | Config Value | Layout |
-|-----------|-------------|--------|
-| NeurIPS 2025 | `neurips_2025` | Single column |
-| ICLR 2026 | `iclr_2026` | Single column |
-| ICML 2026 | `icml_2026` | Double column |
+The biggest risk with LLM-generated papers is fake citations. ScholarClaw addresses this with a multi-pass verification system after the draft is complete:
+
+| Pass | Source | What it catches |
+|------|--------|----------------|
+| 1 | arXiv API | Non-existent arXiv identifiers |
+| 2 | CrossRef / DataCite | DOIs that don't resolve or whose titles don't match |
+| 3 | Semantic Scholar | Papers that simply don't exist (fuzzy title match ≥ 0.80) |
+| 4 | LLM re-scoring | Real papers that have nothing to do with the topic |
+
+References that fail any pass are removed from the `.bib` and the in-text `\cite{}` calls. The audit trail is saved to `verification_report.json`.
+
+---
+
+## Hardware Adaptation
+
+Before generating experiment code, ScholarClaw probes the local environment:
+
+| Detected | Strategy |
+|----------|----------|
+| NVIDIA GPU ≥ 8 GB | Full PyTorch + CUDA |
+| NVIDIA < 8 GB or Apple MPS | Lighter models, smaller batches |
+| CPU only | NumPy / scikit-learn workloads |
+
+This means the same topic produces runnable code on a MacBook Air and on a multi-GPU server — the pipeline adjusts automatically.
+
+---
+
+## Experiment Sandbox
+
+Generated code runs inside a restricted sandbox:
+
+- **AST pre-check** — rejects code with disallowed imports before execution.
+- **Divergence guard** — kills runs that produce NaN / Inf early.
+- **Auto-repair** — on failure, the traceback is fed back to the LLM, which produces a targeted patch. Up to 3 repair rounds.
+- **Partial capture** — if a run times out, whatever metrics were collected are still saved.
+
+---
+
+## Automated Review
+
+After the draft is written, two review passes run automatically:
+
+1. **Methodology pass** — checks whether the experiments actually support the claims, flags missing baselines, notes reproducibility gaps.
+2. **Clarity pass** — checks argument flow, undefined terms, figure/table descriptions.
+
+An additional consistency check compares the number of experiments described in the paper against the number that actually ran.
+
+---
+
+## LaTeX Templates
+
+| Target | Config value | Notes |
+|--------|-------------|-------|
+| NeurIPS 2025 | `neurips_2025` | Single-column |
+| ICLR 2026 | `iclr_2026` | Single-column |
+| ICML 2026 | `icml_2026` | Double-column |
 
 ```yaml
 export:
   target_conference: "neurips_2025"
 ```
 
-The `deliverables/` folder includes `.sty`, `.bst`, and `.cls` files — upload to Overleaf and compile without extra setup.
+Style files (`.sty`, `.bst`, `.cls`) are bundled in `deliverables/` — upload the folder to Overleaf and compile.
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 <details>
-<summary><b>Full config reference (click to expand)</b></summary>
+<summary>Full reference</summary>
 
 ```yaml
-# ─── Project ───
 project:
   name: "my-research"
-  mode: "full-auto"                  # docs-first | semi-auto | full-auto
+  mode: "full-auto"              # docs-first | semi-auto | full-auto
 
-# ─── Research ───
 research:
   topic: "..."
   domains: ["ml", "nlp"]
-  daily_paper_count: 8
-  quality_threshold: 4.0
 
-# ─── LLM ───
 llm:
-  provider: "openai-compatible"      # or "acp"
+  provider: "openai-compatible"  # or "acp"
   base_url: "https://api.openai.com/v1"
   api_key_env: "OPENAI_API_KEY"
   primary_model: "gpt-4o"
   fallback_models: ["gpt-4o-mini"]
-  acp:
-    agent: "claude"                  # claude | codex | gemini | kimi
+  acp:                           # when provider is "acp"
+    agent: "claude"              # any ACP-compatible CLI
     cwd: "."
 
-# ─── Experiment ───
 experiment:
-  mode: "sandbox"                    # simulated | sandbox | docker | ssh_remote
+  mode: "sandbox"                # simulated | sandbox | docker | ssh_remote
   time_budget_sec: 300
   max_iterations: 10
-  metric_key: "val_loss"
-  metric_direction: "minimize"
   sandbox:
     python_path: ".venv/bin/python"
-    gpu_required: false
     allowed_imports: [math, random, json, csv, numpy, torch, sklearn]
     max_memory_mb: 4096
   docker:
     image: "scholarclaw/experiment:latest"
     network_policy: "setup_only"
-    gpu_enabled: true
   ssh_remote:
     host: ""
     gpu_ids: []
 
-# ─── Export ───
 export:
   target_conference: "neurips_2025"
   authors: "Anonymous"
 
-# ─── Quality Gates ───
 security:
-  hitl_required_stages: [5, 9, 20]
+  hitl_required_stages: [5, 9, 20]   # gate stages
   allow_publish_without_approval: false
-
-# ─── Cross-Run Learning (Optional) ───
-metaclaw_bridge:
-  enabled: false
-  skills_dir: "~/.metaclaw/skills"
 ```
-
 </details>
 
 ---
 
-## 🛠️ CLI Reference
+## CLI
 
 ```bash
-# Full pipeline
-scholarclaw run --topic "..." --auto-approve
-
-# Custom config
-scholarclaw run --config config.scholarclaw.yaml --topic "..."
-
-# Resume from a stage
-scholarclaw run --from-stage PAPER_OUTLINE --auto-approve
-
-# Validate config
-scholarclaw validate --config config.scholarclaw.yaml
+scholarclaw run --topic "..." --auto-approve          # full pipeline
+scholarclaw run --config my.yaml --topic "..."        # custom config
+scholarclaw run --from-stage PAPER_OUTLINE             # resume mid-pipeline
+scholarclaw validate --config my.yaml                  # dry-run config check
 ```
 
 ---
 
-## 🗂️ Project Structure
+## Project Layout
 
 ```
 scholarclaw_engine/
-├── pipeline/           # Stage runner, executor, contracts
-├── literature/         # arXiv, Semantic Scholar, OpenAlex clients
-├── experiment/         # Sandbox, Docker, SSH, self-healing
-├── agents/             # CodeAgent, BenchmarkAgent, FigureAgent
-├── templates/styles/   # NeurIPS / ICML / ICLR LaTeX
-├── llm/                # LLM adapters (OpenAI-compatible, ACP)
-├── metaclaw_bridge/    # Cross-run learning (optional)
-└── knowledge/          # Structured knowledge base
-
-tests/                  # Test suite
-docs/                   # EN + CN documentation
+  pipeline/         stage runner + executor
+  literature/       arXiv, Semantic Scholar, OpenAlex clients
+  experiment/       sandbox, Docker, SSH, auto-repair
+  agents/           CodeAgent, BenchmarkAgent, FigureAgent
+  templates/        NeurIPS / ICML / ICLR LaTeX styles
+  llm/              LLM adapters
+  knowledge/        structured knowledge base
+tests/
+docs/               EN + CN
 ```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+PRs welcome — please open an issue first so we can discuss scope.
 
 ```bash
-# Development setup
-git clone https://github.com/Randy-sin/ScholarClaw.git
-cd ScholarClaw
-python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-
-# Run tests
 pytest tests/ -v
 ```
 
 ---
 
-## 📄 License
+## License
 
-[MIT](LICENSE) — use it however you want.
+MIT — see [LICENSE](LICENSE).
 
----
-
-<p align="center">
-  <sub>Built with 🦞 by the ScholarClaw contributors</sub>
-</p>
+<p align="center"><sub>🦞</sub></p>
