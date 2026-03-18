@@ -490,7 +490,7 @@ ScholarClaw 定义了 6 个**类型化适配器协议**（`adapters.py`），每
 | **WebFetchAdapter** | `fetch(url) → FetchResponse` | 网页抓取 | 文献采集阶段验证文献源可用性 |
 | **BrowserAdapter** | `open(url) → BrowserPage` | 浏览器自动化 | 采集需要 JavaScript 渲染的论文页面 |
 
-**代码级证据——消息通知（executor.py）：**
+代码级证据——消息通知（`executor.py`）：
 
 ```python
 # 阶段开始时，通过 OpenClaw 的消息通道通知用户
@@ -510,7 +510,7 @@ if bridge.use_message and config.notifications.on_gate_required:
     )
 ```
 
-**代码级证据——跨会话记忆（executor.py）：**
+代码级证据——跨会话记忆（`executor.py`）：
 
 ```python
 # 将阶段运行状态持久化到 OpenClaw 的记忆系统
@@ -520,7 +520,7 @@ if bridge.use_memory:
     adapters.memory.append("stages", f"{run_id}:{int(stage)}:{result.status.value}")
 ```
 
-**代码级证据——网页抓取验证（executor.py）：**
+代码级证据——网页抓取验证（`executor.py`）：
 
 ```python
 # 文献采集阶段：利用 OpenClaw 的 web_fetch 能力验证文献源
