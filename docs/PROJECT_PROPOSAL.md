@@ -450,27 +450,15 @@ OpenClaw 的技能系统通过扫描 `skills/<name>/SKILL.md` 文件来发现可
 
 当用户在 OpenClaw 的任何消息通道（Telegram、Discord、Slack、Web、iMessage 等）中发送类似消息时，OpenClaw 的技能匹配系统将消息路由到 ScholarClaw。具体流程：
 
-```
-用户："帮我研究注意力机制在时序预测中的效率"
-  │
-  ▼
-OpenClaw 消息入口（任意通道）
-  │
-  ▼
-技能匹配引擎（resolveSkillCommandInvocation）
-  ├─ 匹配 /scholarclaw 命令，或
-  └─ LLM 根据系统提示中注入的 SKILL.md 内容自主判断
-  │
-  ▼
-改写消息体："Use the scholarclaw skill for this request. User input: ..."
-  │
-  ▼
-OpenClaw Agent 执行：
-  ├─ 读取 SKILL.md → 理解安装和运行方式
-  ├─ 检查环境（venv、依赖）
-  ├─ 运行 scholarclaw run --topic "..." --auto-approve
-  └─ 收集产出物，通过消息通道返回给用户
-```
+1. **用户发送消息**：在任意通道中说"帮我研究注意力机制在时序预测中的效率"
+2. **消息进入 OpenClaw**：经由 Telegram / Discord / Slack / Web 等通道的消息入口
+3. **技能匹配**：`resolveSkillCommandInvocation` 引擎匹配到 `/scholarclaw` 命令，或 LLM 根据系统提示中注入的 SKILL.md 内容自主判断应使用 ScholarClaw
+4. **消息改写**：消息体被改写为 `"Use the scholarclaw skill for this request. User input: ..."`
+5. **Agent 执行**：
+   - 读取 SKILL.md，理解安装和运行方式
+   - 检查环境（venv、依赖是否就绪）
+   - 运行 `scholarclaw run --topic "..." --auto-approve`
+6. **结果返回**：Agent 收集产出物，通过用户所在的消息通道返回
 
 **用户不需要知道 ScholarClaw 的存在**——他们只需要对 OpenClaw 说"帮我研究 X"，OpenClaw 自动完成克隆、安装、配置、执行和结果返回。
 
@@ -538,26 +526,24 @@ if config.openclaw_bridge.use_web_fetch:
 
 ScholarClaw 的产出物通过 OpenClaw 的多通道消息系统返回给用户：
 
-```
-ScholarClaw 流水线完成
-  │
-  ▼
-产出物目录 artifacts/sc-YYYYMMDD-HHMMSS-<hash>/
-  ├── deliverables/paper.tex        ← LaTeX 源文件
-  ├── deliverables/references.bib   ← 验证过的引用
-  ├── paper_draft.md                ← Markdown 初稿
-  ├── peer_review.md                ← 评审报告
-  └── verification_report.json      ← 引用审计
-  │
-  ▼
-OpenClaw Agent 汇总结果
-  │
-  ▼
-通过用户所在的消息通道返回
-  ├── Telegram / Discord / Slack → 发送摘要 + 关键文件
-  ├── Web UI → 展示完整产出目录
-  └── CLI → 打印产出路径
-```
+1. **流水线完成**：产出物写入 `artifacts/sc-YYYYMMDD-HHMMSS-<hash>/` 目录
+
+| 产出文件 | 内容 |
+|---------|------|
+| `deliverables/paper.tex` | LaTeX 源文件 |
+| `deliverables/references.bib` | 验证过的引用 |
+| `paper_draft.md` | Markdown 初稿 |
+| `peer_review.md` | 评审报告 |
+| `verification_report.json` | 引用审计记录 |
+
+2. **Agent 汇总**：OpenClaw Agent 读取产出目录，提取关键信息
+3. **多通道分发**：根据用户所在通道选择合适的返回方式
+
+| 通道 | 返回形式 |
+|------|---------|
+| Telegram / Discord / Slack | 发送摘要文本 + 关键文件附件 |
+| Web UI | 展示完整产出目录，支持在线预览 |
+| CLI | 打印产出路径 |
 
 OpenClaw 还内置了 `/export-paper` 命令（`commands-export-paper.ts`），可以将会话中的学术内容导出为格式化的 HTML 或 PDF 报告，与 ScholarClaw 的 Markdown 产出无缝衔接。
 
