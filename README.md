@@ -66,11 +66,14 @@ A single run produces a self-contained research artifact:
 |------|-----------|
 | `paper_draft.md` | 5 000 – 6 500 word draft covering introduction through conclusion |
 | `paper.tex` + `*.sty` | Compile-ready LaTeX (NeurIPS / ICML / ICLR) |
+| `paper.pdf` | Auto-compiled PDF *(requires `pdflatex` — see note below)* |
 | `references.bib` | BibTeX entries — each one verified against live databases |
 | `experiments/` | Generated Python code, stdout logs, `metrics.json` per run |
 | `charts/` | Comparison plots with error bars |
 | `peer_review.md` | Automated critique (methodology + clarity) |
 | `verification_report.json` | Per-reference audit trail |
+
+> **PDF generation note:** If `pdflatex` is installed on your system, the pipeline automatically compiles `paper.tex` into `paper.pdf` (with up to 3 auto-repair attempts for common LaTeX errors). If `pdflatex` is not available, the pipeline completes normally and outputs `.tex` + `.bib` files — you can compile them on [Overleaf](https://overleaf.com) or with any local TeX distribution (`brew install --cask mactex` on macOS, `sudo apt install texlive-full` on Ubuntu, or [tectonic](https://tectonic-typesetting.github.io/) as a lightweight alternative).
 
 ---
 

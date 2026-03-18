@@ -74,6 +74,7 @@ OpenClaw will modify `config.yaml` accordingly before running the pipeline.
 | **LLM API** | Any OpenAI-compatible endpoint (OpenAI, Azure, local proxy, etc.) |
 | **Disk space** | ~100 MB for the repo + artifacts per run |
 | **Network** | Required for LLM API calls and literature search (Semantic Scholar, arXiv) |
+| **LaTeX** *(optional)* | `pdflatex` + `bibtex` for automatic PDF generation. If not installed, the pipeline still completes successfully and outputs `.tex` + `.bib` files — you can compile them yourself on [Overleaf](https://overleaf.com) or with any local TeX distribution. Install via: `sudo apt install texlive-full` (Debian/Ubuntu), `brew install --cask mactex` (macOS), or [tectonic](https://tectonic-typesetting.github.io/) as a lightweight alternative. |
 
 ### Installation
 

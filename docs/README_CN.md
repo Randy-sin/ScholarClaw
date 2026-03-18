@@ -66,11 +66,14 @@ experiment:
 |------|------|
 | `paper_draft.md` | 5 000 – 6 500 词的完整初稿，从引言到结论 |
 | `paper.tex` + `*.sty` | 可编译的 LaTeX（NeurIPS / ICML / ICLR） |
+| `paper.pdf` | 自动编译的 PDF *（需要安装 `pdflatex`，见下方说明）* |
 | `references.bib` | 每条引用都经过在线数据库验证的 BibTeX |
 | `experiments/` | 生成的 Python 代码、运行日志、`metrics.json` |
 | `charts/` | 带误差线的对比图表 |
 | `peer_review.md` | 自动评审（方法论 + 表达力） |
 | `verification_report.json` | 逐条引用的审计记录 |
+
+> **PDF 生成说明：** 如果系统安装了 `pdflatex`，流水线会自动将 `paper.tex` 编译为 `paper.pdf`（遇到常见 LaTeX 错误最多自动修复 3 次）。如果未安装 `pdflatex`，流水线仍会正常完成，输出 `.tex` + `.bib` 文件——你可以在 [Overleaf](https://overleaf.com) 上编译，或使用本地 TeX 发行版（macOS: `brew install --cask mactex`，Ubuntu: `sudo apt install texlive-full`，或轻量替代方案 [tectonic](https://tectonic-typesetting.github.io/)）。
 
 ---
 
