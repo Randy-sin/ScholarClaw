@@ -139,7 +139,7 @@ class LlmConfig:
 
 @dataclass(frozen=True)
 class SecurityConfig:
-    hitl_required_stages: tuple[int, ...] = (5, 9, 20)
+    hitl_required_stages: tuple[int, ...] = (3, 6, 11)
     allow_publish_without_approval: bool = False
     redact_sensitive_logs: bool = True
 
@@ -424,7 +424,7 @@ class RCConfig:
             llm=_parse_llm_config(llm),
             security=SecurityConfig(
                 hitl_required_stages=tuple(
-                    int(s) for s in security.get("hitl_required_stages", (5, 9, 20))
+                    int(s) for s in security.get("hitl_required_stages", (3, 6, 11))
                 ),
                 allow_publish_without_approval=bool(
                     security.get("allow_publish_without_approval", False)
@@ -494,7 +494,7 @@ def validate_config(
             errors.append("security.hitl_required_stages must be a list")
         else:
             for stage in hitl_required_stages:
-                if not isinstance(stage, int) or not 1 <= stage <= 23:
+                if not isinstance(stage, int) or not 1 <= stage <= 12:
                     errors.append(
                         f"Invalid security.hitl_required_stages entry: {stage}"
                     )

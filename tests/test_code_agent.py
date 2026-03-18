@@ -73,7 +73,7 @@ class FakeSandbox:
 
 @pytest.fixture()
 def stage_dir(tmp_path: Path) -> Path:
-    d = tmp_path / "stage-10"
+    d = tmp_path / "stage-07"
     d.mkdir()
     return d
 

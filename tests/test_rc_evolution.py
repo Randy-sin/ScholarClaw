@@ -25,8 +25,8 @@ from scholarclaw_engine.evolution import (
 class TestLessonEntry:
     def test_to_dict_and_from_dict_roundtrip(self) -> None:
         entry = LessonEntry(
-            stage_name="hypothesis_gen",
-            stage_num=8,
+            stage_name="hypothesis_synthesis",
+            stage_num=5,
             category="experiment",
             severity="error",
             description="Code validation failed",
@@ -35,8 +35,8 @@ class TestLessonEntry:
         )
         data = entry.to_dict()
         restored = LessonEntry.from_dict(data)
-        assert restored.stage_name == "hypothesis_gen"
-        assert restored.stage_num == 8
+        assert restored.stage_name == "hypothesis_synthesis"
+        assert restored.stage_num == 5
         assert restored.category == "experiment"
         assert restored.severity == "error"
 
@@ -55,13 +55,13 @@ class TestClassifyError:
         assert _classify_error("experiment_run", "Connection timeout after 30s") == "system"
 
     def test_validation_classified_as_experiment(self) -> None:
-        assert _classify_error("code_generation", "Syntax error in code") == "experiment"
+        assert _classify_error("code_setup", "Syntax error in code") == "experiment"
 
     def test_citation_classified_as_literature(self) -> None:
-        assert _classify_error("citation_verify", "Hallucinated reference") == "literature"
+        assert _classify_error("export_verify", "Hallucinated reference") == "literature"
 
     def test_paper_classified_as_writing(self) -> None:
-        assert _classify_error("paper_draft", "Draft quality too low") == "writing"
+        assert _classify_error("paper_write", "Draft quality too low") == "writing"
 
     def test_unknown_defaults_to_pipeline(self) -> None:
         assert _classify_error("unknown_stage", "something random") == "pipeline"
@@ -108,21 +108,21 @@ class TestExtractLessons:
         )
 
     def test_extracts_lesson_from_failed_stage(self) -> None:
-        results = [self._make_result(4, "failed", error="API rate limited")]
+        results = [self._make_result(2, "failed", error="API rate limited")]
         lessons = extract_lessons(results, run_id="test-run")
         assert len(lessons) == 1
         assert lessons[0].severity == "error"
         assert "rate limited" in lessons[0].description
 
     def test_extracts_lesson_from_blocked_stage(self) -> None:
-        results = [self._make_result(5, "blocked_approval")]
+        results = [self._make_result(3, "blocked_approval")]
         lessons = extract_lessons(results, run_id="test-run")
         assert len(lessons) == 1
         assert lessons[0].severity == "warning"
         assert "blocked" in lessons[0].description
 
     def test_extracts_lesson_from_pivot_decision(self) -> None:
-        results = [self._make_result(15, "done", decision="pivot")]
+        results = [self._make_result(9, "done", decision="pivot")]
         lessons = extract_lessons(results, run_id="test-run")
         assert len(lessons) == 1
         assert "PIVOT" in lessons[0].description
@@ -134,28 +134,28 @@ class TestExtractLessons:
 
     def test_multiple_results_multiple_lessons(self) -> None:
         results = [
-            self._make_result(4, "failed", error="timeout"),
-            self._make_result(5, "blocked_approval"),
-            self._make_result(15, "done", decision="refine"),
+            self._make_result(2, "failed", error="timeout"),
+            self._make_result(3, "blocked_approval"),
+            self._make_result(9, "done", decision="refine"),
         ]
         lessons = extract_lessons(results)
         assert len(lessons) == 3
 
     def test_extracts_decision_rationale(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        stage_dir = run_dir / "stage-15"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         (stage_dir / "decision_structured.json").write_text(
             json.dumps({"decision": "pivot", "rationale": "NaN in metrics"}),
             encoding="utf-8",
         )
-        results = [self._make_result(15, "done", decision="pivot")]
+        results = [self._make_result(9, "done", decision="pivot")]
         lessons = extract_lessons(results, run_id="test", run_dir=run_dir)
         assert any("NaN in metrics" in l.description for l in lessons)
 
     def test_extracts_rationale_from_raw_text_excerpt(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        stage_dir = run_dir / "stage-15"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         (stage_dir / "decision_structured.json").write_text(
             json.dumps({
@@ -169,13 +169,13 @@ class TestExtractLessons:
             }),
             encoding="utf-8",
         )
-        results = [self._make_result(15, "done", decision="refine")]
+        results = [self._make_result(9, "done", decision="refine")]
         lessons = extract_lessons(results, run_id="test", run_dir=run_dir)
         assert any("statistical rigor" in l.description for l in lessons)
 
     def test_extracts_stderr_runtime_lesson(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -184,25 +184,25 @@ class TestExtractLessons:
             }),
             encoding="utf-8",
         )
-        results = [self._make_result(12, "done")]
+        results = [self._make_result(8, "done")]
         lessons = extract_lessons(results, run_dir=run_dir)
         assert any("RuntimeWarning" in l.description for l in lessons)
 
     def test_extracts_nan_metric_lesson(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({"metrics": {"accuracy": "nan"}}),
             encoding="utf-8",
         )
-        results = [self._make_result(12, "done")]
+        results = [self._make_result(8, "done")]
         lessons = extract_lessons(results, run_dir=run_dir)
         assert any("accuracy" in l.description and "nan" in l.description.lower()
                     for l in lessons)
 
     def test_no_runtime_lessons_without_run_dir(self) -> None:
-        results = [self._make_result(12, "done")]
+        results = [self._make_result(8, "done")]
         lessons = extract_lessons(results)
         assert len(lessons) == 0
 
@@ -214,8 +214,8 @@ class TestEvolutionStore:
     def test_append_and_load(self, tmp_path: Path) -> None:
         store = EvolutionStore(tmp_path / "evo")
         lesson = LessonEntry(
-            stage_name="hypothesis_gen",
-            stage_num=8,
+            stage_name="hypothesis_synthesis",
+            stage_num=5,
             category="pipeline",
             severity="warning",
             description="PIVOT triggered",
@@ -224,7 +224,7 @@ class TestEvolutionStore:
         store.append(lesson)
         loaded = store.load_all()
         assert len(loaded) == 1
-        assert loaded[0].stage_name == "hypothesis_gen"
+        assert loaded[0].stage_name == "hypothesis_synthesis"
 
     def test_append_many(self, tmp_path: Path) -> None:
         store = EvolutionStore(tmp_path / "evo")
@@ -249,14 +249,14 @@ class TestEvolutionStore:
     def test_query_for_stage_returns_relevant_lessons(self, tmp_path: Path) -> None:
         store = EvolutionStore(tmp_path / "evo")
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        store.append(LessonEntry("hypothesis_gen", 8, "pipeline", "error",
+        store.append(LessonEntry("hypothesis_synthesis", 5, "pipeline", "error",
                                  "Failed hypothesis", now))
-        store.append(LessonEntry("paper_draft", 17, "writing", "warning",
+        store.append(LessonEntry("paper_write", 10, "writing", "warning",
                                  "Draft too short", now))
-        result = store.query_for_stage("hypothesis_gen", max_lessons=5)
-        # hypothesis_gen lesson should be boosted
+        result = store.query_for_stage("hypothesis_synthesis", max_lessons=5)
+        # hypothesis_synthesis lesson should be boosted
         assert len(result) >= 1
-        assert result[0].stage_name == "hypothesis_gen"
+        assert result[0].stage_name == "hypothesis_synthesis"
 
     def test_query_respects_max_lessons(self, tmp_path: Path) -> None:
         store = EvolutionStore(tmp_path / "evo")
@@ -269,14 +269,14 @@ class TestEvolutionStore:
 
     def test_build_overlay_returns_empty_for_no_lessons(self, tmp_path: Path) -> None:
         store = EvolutionStore(tmp_path / "evo")
-        assert store.build_overlay("hypothesis_gen") == ""
+        assert store.build_overlay("hypothesis_synthesis") == ""
 
     def test_build_overlay_returns_formatted_text(self, tmp_path: Path) -> None:
         store = EvolutionStore(tmp_path / "evo")
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        store.append(LessonEntry("hypothesis_gen", 8, "experiment", "error",
+        store.append(LessonEntry("hypothesis_synthesis", 5, "experiment", "error",
                                  "Code syntax error in experiment", now))
-        overlay = store.build_overlay("hypothesis_gen")
+        overlay = store.build_overlay("hypothesis_synthesis")
         assert "Lessons from Prior Runs" in overlay
         assert "Code syntax error" in overlay
         assert "❌" in overlay
@@ -304,7 +304,7 @@ class TestPromptManagerEvolutionOverlay:
         pm = PromptManager()
         overlay = "## Lessons\n1. Avoid timeout errors."
         sp = pm.for_stage(
-            "topic_init",
+            "research_scoping",
             evolution_overlay=overlay,
             topic="test",
             domains="ml",
@@ -318,14 +318,14 @@ class TestPromptManagerEvolutionOverlay:
 
         pm = PromptManager()
         sp1 = pm.for_stage(
-            "topic_init",
+            "research_scoping",
             topic="test",
             domains="ml",
             project_name="p1",
             quality_threshold="8.0",
         )
         sp2 = pm.for_stage(
-            "topic_init",
+            "research_scoping",
             evolution_overlay="",
             topic="test",
             domains="ml",

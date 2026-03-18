@@ -118,7 +118,7 @@ def test_main_dispatches_run_command(monkeypatch: pytest.MonkeyPatch) -> None:
             "--output",
             "out-dir",
             "--from-stage",
-            "PAPER_OUTLINE",
+            "PAPER_WRITE",
             "--auto-approve",
         ]
     )
@@ -127,7 +127,7 @@ def test_main_dispatches_run_command(monkeypatch: pytest.MonkeyPatch) -> None:
     assert parsed.topic == "new topic"
     assert parsed.config == "cfg.yaml"
     assert parsed.output == "out-dir"
-    assert parsed.from_stage == "PAPER_OUTLINE"
+    assert parsed.from_stage == "PAPER_WRITE"
     assert parsed.auto_approve is True
 
 
@@ -151,7 +151,7 @@ def test_main_dispatches_validate_command(monkeypatch: pytest.MonkeyPatch) -> No
     [
         ["run", "--topic", "x", "--config", "c.yaml"],
         ["run", "--output", "out", "--config", "c.yaml"],
-        ["run", "--from-stage", "TOPIC_INIT", "--config", "c.yaml"],
+        ["run", "--from-stage", "RESEARCH_SCOPING", "--config", "c.yaml"],
         ["run", "--auto-approve", "--config", "c.yaml"],
     ],
 )

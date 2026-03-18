@@ -1,6 +1,6 @@
 # ScholarClaw Integration Guide
 
-> **The simplest way to use ScholarClaw**: give the repo URL to [OpenClaw](https://github.com/openclaw/openclaw) and say *"Research [your topic]."* That's it — OpenClaw handles cloning, installing, configuring, and running the entire 23-stage pipeline for you.
+> **The simplest way to use ScholarClaw**: give the repo URL to [OpenClaw](https://github.com/openclaw/openclaw) and say *"Research [your topic]."* That's it — OpenClaw handles cloning, installing, configuring, and running the entire pipeline for you.
 
 This guide is for humans who want to understand what's happening under the hood, or who prefer to set things up manually.
 
@@ -12,7 +12,7 @@ This guide is for humans who want to understand what's happening under the hood,
 2. [Manual Setup](#2-manual-setup)
 3. [Configuration Walkthrough](#3-configuration-walkthrough)
 4. [Running the Pipeline](#4-running-the-pipeline)
-5. [Understanding the 23 Stages](#5-understanding-the-23-stages)
+5. [Understanding the Pipeline Stages](#5-understanding-the-pipeline-stages)
 6. [Output Artifacts](#6-output-artifacts)
 7. [Experiment Modes](#7-experiment-modes)
 8. [Conference Templates](#8-conference-templates)
@@ -46,7 +46,7 @@ If you use [OpenClaw](https://github.com/openclaw/openclaw) as your AI assistant
    - Create a virtual environment and install dependencies (`pip install -e .`)
    - Copy `config.scholarclaw.example.yaml` → `config.yaml`
    - Ask you for an OpenAI API key (or use your environment variable)
-   - Run the full 23-stage pipeline
+   - Run the full pipeline
    - Return the paper, experiment code, charts, and citations
 
 **That's the whole process.** OpenClaw is designed to read agent definition files and bootstrap itself. ScholarClaw ships with these files specifically so that any OpenClaw-compatible AI assistant can pick it up and run.
@@ -165,7 +165,7 @@ research:
 experiment:
   mode: "sandbox"              # How experiments run (see Section 7)
   time_budget_sec: 300         # Max seconds per experiment run
-  max_iterations: 10           # Max refinement loops in Stage 13
+  max_iterations: 10           # Max refinement loops in Stage 8
   metric_key: "primary_metric" # What metric to optimize
   metric_direction: "minimize" # "minimize" or "maximize"
   sandbox:
@@ -199,7 +199,7 @@ runtime:
   retry_limit: 2
 
 security:
-  hitl_required_stages: [5, 9, 20]     # Stages that pause for human approval
+  hitl_required_stages: [3, 6, 11]     # Stages that pause for human approval
   allow_publish_without_approval: false
 
 notifications:
@@ -228,7 +228,7 @@ scholarclaw run --config config.yaml --topic "Transformer attention for time ser
 
 | Command | What It Does |
 |---------|-------------|
-| `scholarclaw run` | Run the full 23-stage pipeline |
+| `scholarclaw run` | Run the full pipeline |
 | `scholarclaw validate` | Check your config file for errors |
 | `scholarclaw_engine doctor` | Diagnose environment issues (Python, dependencies, API connectivity) |
 | `scholarclaw_engine report --run-dir <path>` | Generate a human-readable summary of a completed run |
@@ -240,8 +240,8 @@ scholarclaw run --config config.yaml --topic "Transformer attention for time ser
 | `--topic "..."` | Override the topic in config.yaml |
 | `--config path` | Config file path (default: `config.yaml`) |
 | `--output path` | Output directory (default: `artifacts/<run-id>/`) |
-| `--auto-approve` | Skip manual approval at gate stages (5, 9, 20) |
-| `--from-stage STAGE_NAME` | Start from a specific stage (e.g., `PAPER_OUTLINE`) |
+| `--auto-approve` | Skip manual approval at gate stages (3, 6, 11) |
+| `--from-stage STAGE_NAME` | Start from a specific stage (e.g., `PAPER_WRITE`) |
 | `--resume` | Resume from the last checkpoint |
 | `--skip-preflight` | Skip LLM connectivity check before starting |
 | `--skip-noncritical-stage` | Skip non-critical stages on failure instead of aborting |
@@ -264,72 +264,46 @@ scholarclaw_engine doctor -c config.yaml
 
 ---
 
-## 5. Understanding the 23 Stages
+## 5. Understanding the Pipeline Stages
 
-The pipeline runs in 8 phases. Each stage reads artifacts from previous stages and produces new ones.
+The pipeline runs in 5 phases with 12 stages. Each stage reads artifacts from previous stages and produces new ones.
 
-### Phase A: Research Scoping
-
-| # | Stage | What Happens | Produces |
-|---|-------|-------------|----------|
-| 1 | TOPIC_INIT | LLM formulates a SMART research goal; auto-detects GPU hardware (NVIDIA/MPS/CPU) | `goal.md`, `hardware_profile.json` |
-| 2 | PROBLEM_DECOMPOSE | Breaks the goal into prioritized sub-questions | `problem_tree.md` |
-
-### Phase B: Literature Discovery
+### Phase 1: Discovery
 
 | # | Stage | What Happens | Produces |
 |---|-------|-------------|----------|
-| 3 | SEARCH_STRATEGY | Plans search queries and data sources | `search_plan.yaml`, `sources.json` |
-| 4 | LITERATURE_COLLECT | Queries **real APIs** (arXiv-first, then Semantic Scholar) with expanded queries for broad coverage | `candidates.jsonl` |
-| 5 | LITERATURE_SCREEN | **[Gate]** Filters by relevance and quality | `shortlist.jsonl` |
-| 6 | KNOWLEDGE_EXTRACT | Extracts structured knowledge cards from each paper | `cards/` |
+| 1 | RESEARCH_SCOPING | LLM formulates a SMART research goal; auto-detects GPU hardware; breaks the goal into prioritized sub-questions | `goal.md`, `hardware_profile.json`, `problem_tree.md` |
+| 2 | SEARCH_COLLECT | Plans search queries and queries **real APIs** (arXiv, Semantic Scholar, OpenAlex) with expanded queries for broad coverage | `search_plan.yaml`, `sources.json`, `candidates.jsonl` |
+| 3 | LITERATURE_SCREEN | **[Gate]** Filters by relevance and quality | `shortlist.jsonl` |
+| 4 | KNOWLEDGE_EXTRACT | Extracts structured knowledge cards from each paper | `cards/` |
 
-### Phase C: Knowledge Synthesis
-
-| # | Stage | What Happens | Produces |
-|---|-------|-------------|----------|
-| 7 | SYNTHESIS | Clusters findings, identifies research gaps | `synthesis.md` |
-| 8 | HYPOTHESIS_GEN | Generates falsifiable hypotheses | `hypotheses.md` |
-
-### Phase D: Experiment Design
+### Phase 2: Ideation
 
 | # | Stage | What Happens | Produces |
 |---|-------|-------------|----------|
-| 9 | EXPERIMENT_DESIGN | **[Gate]** Designs experiment plan with baselines and metrics | `exp_plan.yaml` |
-| 10 | CODE_GENERATION | LLM writes hardware-aware experiment code (adapts packages/constraints to GPU tier) | `experiment.py`, `experiment_spec.md` |
-| 11 | RESOURCE_PLANNING | Estimates GPU/time requirements | `schedule.json` |
+| 5 | HYPOTHESIS_SYNTHESIS | Clusters findings, identifies research gaps, generates falsifiable hypotheses | `synthesis.md`, `hypotheses.md` |
+| 6 | EXPERIMENT_DESIGN | **[Gate]** Designs experiment plan with baselines and metrics | `exp_plan.yaml` |
+| 7 | CODE_SETUP | LLM writes hardware-aware experiment code; estimates GPU/time requirements | `experiment/`, `experiment_spec.md`, `schedule.json` |
 
-### Phase E: Experiment Execution
-
-| # | Stage | What Happens | Produces |
-|---|-------|-------------|----------|
-| 12 | EXPERIMENT_RUN | Runs the experiment code (sandbox or simulated); immutable harness injected for time guard and metric validation; partial results captured on timeout | `runs/` |
-| 13 | ITERATIVE_REFINE | LLM analyzes results, improves code, re-runs (up to 10 iterations); timeout-aware prompts; NaN/divergence fast-fail; stdout truncated for context efficiency | `refinement_log.json`, `experiment_final.py` |
-
-### Phase F: Analysis & Decision
+### Phase 3: Experimentation
 
 | # | Stage | What Happens | Produces |
 |---|-------|-------------|----------|
-| 14 | RESULT_ANALYSIS | Statistical analysis of experiment results | `analysis.md` |
-| 15 | RESEARCH_DECISION | PROCEED / PIVOT decision with evidence | `decision.md` |
+| 8 | EXPERIMENT_EXECUTE | Runs experiments in sandbox with iterative refinement (up to 10 iterations); NaN/divergence fast-fail; auto-repair on failure | `runs/`, `refinement_log.json`, `experiment_final/` |
+| 9 | ANALYSIS_DECISION | Statistical analysis of results + PROCEED/PIVOT/REFINE decision with evidence | `analysis.md`, `decision.md` |
 
-### Phase G: Paper Writing
-
-| # | Stage | What Happens | Produces |
-|---|-------|-------------|----------|
-| 16 | PAPER_OUTLINE | Creates section-level paper outline | `outline.md` |
-| 17 | PAPER_DRAFT | Writes paper section-by-section (3 LLM calls, 5,000-6,500 words); **hard-blocked when no experiment metrics** (anti-fabrication); conference-grade title guidelines and abstract structure injected | `paper_draft.md` |
-| 18 | PEER_REVIEW | Simulates 2+ reviewer perspectives with NeurIPS/ICML rubric (1-10 scoring); checks baselines, ablations, claims vs evidence | `reviews.md` |
-| 19 | PAPER_REVISION | Addresses review comments with length guard (auto-retries if revised paper is shorter than draft) | `paper_revised.md` |
-
-### Phase H: Finalization
+### Phase 4: Composition
 
 | # | Stage | What Happens | Produces |
 |---|-------|-------------|----------|
-| 20 | QUALITY_GATE | **[Gate]** Checks paper quality score | `quality_report.json` |
-| 21 | KNOWLEDGE_ARCHIVE | Saves retrospective + reproducibility bundle | `archive.md`, `bundle_index.json` |
-| 22 | EXPORT_PUBLISH | Generates LaTeX, charts, and code package | `paper_final.md`, `paper.tex`, `code/` |
-| 23 | CITATION_VERIFY | Fact-checks all references against real APIs | `verification_report.json`, `references_verified.bib` |
+| 10 | PAPER_WRITE | Outlines, drafts (5,000-6,500 words), runs multi-agent peer review, and revises the paper | `paper_draft.md`, `reviews.md`, `paper_revised.md` |
+
+### Phase 5: Delivery
+
+| # | Stage | What Happens | Produces |
+|---|-------|-------------|----------|
+| 11 | QUALITY_CHECK | **[Gate]** Checks paper quality score | `quality_report.json` |
+| 12 | EXPORT_VERIFY | Generates LaTeX + charts, fact-checks all references against real APIs, archives knowledge | `paper_final.md`, `paper.tex`, `code/`, `verification_report.json`, `references_verified.bib` |
 
 ### Gate Stages
 
@@ -337,9 +311,9 @@ Three stages pause for human review (unless `--auto-approve` is set):
 
 | Gate | What's Being Reviewed | On Reject, Rolls Back To |
 |------|-----------------------|--------------------------|
-| Stage 5 | Are the collected papers relevant and sufficient? | Stage 4 (re-collect literature) |
-| Stage 9 | Is the experiment design sound? | Stage 8 (re-generate hypotheses) |
-| Stage 20 | Does the paper meet quality standards? | Stage 16 (re-write from outline) |
+| Stage 3 | Are the collected papers relevant and sufficient? | Stage 2 (re-collect literature) |
+| Stage 6 | Is the experiment design sound? | Stage 5 (re-generate hypotheses) |
+| Stage 11 | Does the paper meet quality standards? | Stage 10 (re-write paper) |
 
 For fully autonomous operation, always use `--auto-approve`.
 
@@ -350,33 +324,27 @@ For fully autonomous operation, always use `--auto-approve`.
 Each run creates a timestamped directory under `artifacts/`:
 
 ```
-artifacts/rc-20260310-143200-a1b2c3/
-├── stage-1/goal.md                        # Research goal
-├── stage-2/problem_tree.md                # Problem decomposition
-├── stage-3/search_plan.yaml               # Search strategy
-├── stage-4/candidates.jsonl               # Raw literature results
-├── stage-5/shortlist.jsonl                # Screened papers
-├── stage-6/cards/                         # Knowledge cards (one per paper)
-├── stage-7/synthesis.md                   # Research gap analysis
-├── stage-8/hypotheses.md                  # Research hypotheses
-├── stage-9/exp_plan.yaml                  # Experiment plan
-├── stage-10/experiment.py                 # Generated experiment code
-├── stage-10/experiment_spec.md            # Experiment specification
-├── stage-11/schedule.json                 # Resource schedule
-├── stage-12/runs/run-1.json               # Experiment results
-├── stage-13/experiment_final.py           # Refined experiment code
-├── stage-13/experiment_v1.py              # Iteration 1 snapshot
-├── stage-13/refinement_log.json           # Refinement history
-├── stage-14/analysis.md                   # Statistical analysis
-├── stage-14/experiment_summary.json       # Metrics summary
-├── stage-15/decision.md                   # Proceed/Pivot decision
-├── stage-16/outline.md                    # Paper outline
-├── stage-17/paper_draft.md                # Full paper draft
-├── stage-18/reviews.md                    # Simulated peer reviews
-├── stage-19/paper_revised.md              # Revised paper
-├── stage-20/quality_report.json           # Quality assessment
-├── stage-21/archive.md                    # Knowledge retrospective
-├── stage-22/
+artifacts/sc-20260310-143200-a1b2c3/
+├── stage-01/goal.md                       # Research goal + hardware profile
+├── stage-01/problem_tree.md               # Problem decomposition
+├── stage-02/search_plan.yaml              # Search strategy
+├── stage-02/candidates.jsonl              # Raw literature results
+├── stage-03/shortlist.jsonl               # Screened papers
+├── stage-04/cards/                        # Knowledge cards (one per paper)
+├── stage-05/synthesis.md                  # Research gap analysis
+├── stage-05/hypotheses.md                 # Research hypotheses
+├── stage-06/exp_plan.yaml                 # Experiment plan
+├── stage-07/experiment/                   # Generated experiment code
+├── stage-07/schedule.json                 # Resource schedule
+├── stage-08/runs/run-1.json               # Experiment results
+├── stage-08/refinement_log.json           # Refinement history
+├── stage-09/analysis.md                   # Statistical analysis
+├── stage-09/decision.md                   # Proceed/Pivot decision
+├── stage-10/paper_draft.md                # Full paper draft
+├── stage-10/reviews.md                    # Simulated peer reviews
+├── stage-10/paper_revised.md              # Revised paper
+├── stage-11/quality_report.json           # Quality assessment
+├── stage-12/
 │   ├── paper_final.md                     # Final paper (Markdown)
 │   ├── paper.tex                          # Conference-ready LaTeX
 │   ├── references.bib                     # BibTeX references
@@ -385,7 +353,7 @@ artifacts/rc-20260310-143200-a1b2c3/
 │       ├── experiment.py
 │       ├── requirements.txt
 │       └── README.md
-├── stage-23/
+├── stage-12/
 │   ├── verification_report.json           # Citation fact-check results
 │   └── references_verified.bib            # Cleaned bibliography
 └── pipeline_summary.json                  # Overall execution summary
@@ -395,13 +363,13 @@ artifacts/rc-20260310-143200-a1b2c3/
 
 | File | What You'll Use It For |
 |------|----------------------|
-| `stage-22/paper.tex` | Submit to a conference (compile with `pdflatex` or `tectonic`) |
-| `stage-22/paper_final.md` | Read or further edit the paper |
-| `stage-22/references.bib` | Bibliography for LaTeX compilation |
-| `stage-22/code/` | Share experiment code alongside the paper |
-| `stage-23/verification_report.json` | Check which citations are real vs. hallucinated |
-| `stage-13/experiment_final.py` | The best-performing experiment code |
-| `stage-22/charts/` | Figures for the paper |
+| `stage-12/paper.tex` | Submit to a conference (compile with `pdflatex` or `tectonic`) |
+| `stage-12/paper_final.md` | Read or further edit the paper |
+| `stage-12/references.bib` | Bibliography for LaTeX compilation |
+| `stage-12/code/` | Share experiment code alongside the paper |
+| `stage-12/verification_report.json` | Check which citations are real vs. hallucinated |
+| `stage-08/experiment_final/` | The best-performing experiment code |
+| `stage-12/charts/` | Figures for the paper |
 
 ---
 
@@ -525,10 +493,10 @@ The Markdown-to-LaTeX converter handles:
 
 ```bash
 # Using tectonic (recommended)
-tectonic artifacts/<run-id>/stage-22/paper.tex
+tectonic artifacts/<run-id>/stage-12/paper.tex
 
 # Using pdflatex
-cd artifacts/<run-id>/stage-22/
+cd artifacts/<run-id>/stage-12/
 pdflatex paper.tex
 bibtex paper
 pdflatex paper.tex
@@ -577,7 +545,7 @@ This is an **extension point** — you don't need to configure it for basic usag
 ```
 ┌──────────────────────────────────────────────────────┐
 │              ScholarClaw Pipeline                │
-│  Stage 1 → 2 → ... → 23                             │
+│  Stage 1 → 2 → ... → 12                             │
 │                                                      │
 │  ┌─────────────┐    ┌──────────────────────────────┐ │
 │  │ LLMClient   │───▶│ MetaClaw Integration Layer   │ │
@@ -800,7 +768,7 @@ scholarclaw_engine doctor --config config.yaml
 | Code validation rejects all attempts | LLM generates unsafe code | Switch to `simulated` mode, or try a more capable model |
 | Gate stage blocks pipeline | Manual approval required | Use `--auto-approve` for autonomous mode |
 | Pipeline fails mid-run | Transient API error | Run with `--resume` to continue from the last checkpoint |
-| Citations marked HALLUCINATED | LLM invented fake references | This is expected — Stage 23 catches these. Use `references_verified.bib` instead |
+| Citations marked HALLUCINATED | LLM invented fake references | This is expected — Stage 12 catches these. Use `references_verified.bib` instead |
 | LaTeX won't compile | Missing style packages | Install the conference style files, or use `tectonic` which auto-downloads them |
 
 ### Resuming a Failed Run
@@ -826,7 +794,7 @@ This prints a human-readable summary: which stages passed, which failed, key met
 ## 14. FAQ
 
 **Q: How much does a full pipeline run cost in API credits?**
-A: Depends on your model and topic complexity. A typical run with GPT-4o makes ~35-60 API calls across all 23 stages (paper drafting now uses 3 sequential calls for section-by-section writing). Expect roughly $3-12 per run. Simulated mode uses slightly fewer tokens since it doesn't generate real experiment code.
+A: Depends on your model and topic complexity. A typical run with GPT-4o makes ~35-60 API calls across all stages (paper drafting uses 3 sequential calls for section-by-section writing). Expect roughly $3-12 per run. Simulated mode uses slightly fewer tokens since it doesn't generate real experiment code.
 
 **Q: Can I use a local LLM (Ollama, vLLM, etc.)?**
 A: Yes — any OpenAI-compatible endpoint works. Set `llm.base_url` to your local server (e.g., `http://localhost:11434/v1` for Ollama). Quality depends heavily on the model's capabilities.
@@ -835,7 +803,7 @@ A: Yes — any OpenAI-compatible endpoint works. Set `llm.base_url` to your loca
 A: Yes. Use `--from-stage STAGE_NAME` to start from any stage. The stage reads its inputs from previously generated artifacts, so the earlier stages must have completed at least once.
 
 **Q: Are the literature references real?**
-A: Yes. Stage 4 uses a multi-source strategy (arXiv-first, then Semantic Scholar) with query expansion to find real papers with real titles, DOIs, and citation counts. The pipeline typically collects 100-200 candidates and aims for 30-60 references in the final paper. Stage 23 then verifies every reference to catch any that the LLM might have hallucinated during paper writing.
+A: Yes. Stage 2 uses a multi-source strategy (arXiv-first, then Semantic Scholar) with query expansion to find real papers with real titles, DOIs, and citation counts. The pipeline typically collects 100-200 candidates and aims for 30-60 references in the final paper. Stage 12 then verifies every reference to catch any that the LLM might have hallucinated during paper writing.
 
 **Q: Can I use this for a real paper submission?**
 A: ScholarClaw is a research tool, not a paper mill. The output is a strong first draft that should be reviewed, improved, and validated by a human researcher before submission. Think of it as an extremely thorough research assistant.

@@ -1,4 +1,4 @@
-"""ScholarClaw CLI — run the 23-stage autonomous research pipeline."""
+"""ScholarClaw CLI — run the autonomous research pipeline."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     from scholarclaw_engine.pipeline.stages import Stage
 
     # --- Determine start stage ---
-    from_stage = Stage.TOPIC_INIT
+    from_stage = Stage.RESEARCH_SCOPING
     if from_stage_name:
         from_stage = Stage[from_stage_name.upper()]
     elif resume:
@@ -319,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="command")
 
-    run_p = sub.add_parser("run", help="Run the 23-stage research pipeline")
+    run_p = sub.add_parser("run", help="Run the research pipeline")
     _ = run_p.add_argument("--topic", "-t", help="Override research topic")
     _ = run_p.add_argument(
         "--config", "-c", default=None,

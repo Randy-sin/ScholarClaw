@@ -11,25 +11,15 @@ from __future__ import annotations
 from typing import Any
 
 STAGE_SKILL_MAP: dict[str, dict[str, Any]] = {
-    "topic_init": {
+    "research_scoping": {
         "task_type": "research",
-        "skills": ["literature-search-strategy"],
+        "skills": ["literature-search-strategy", "research-gap-identification"],
         "top_k": 4,
     },
-    "problem_decompose": {
-        "task_type": "research",
-        "skills": ["research-gap-identification"],
-        "top_k": 4,
-    },
-    "search_strategy": {
+    "search_collect": {
         "task_type": "research",
         "skills": ["literature-search-strategy"],
         "top_k": 6,
-    },
-    "literature_collect": {
-        "task_type": "research",
-        "skills": ["literature-search-strategy"],
-        "top_k": 4,
     },
     "literature_screen": {
         "task_type": "research",
@@ -41,14 +31,9 @@ STAGE_SKILL_MAP: dict[str, dict[str, Any]] = {
         "skills": ["knowledge-card-extraction"],
         "top_k": 4,
     },
-    "synthesis": {
+    "hypothesis_synthesis": {
         "task_type": "research",
-        "skills": ["research-gap-identification"],
-        "top_k": 6,
-    },
-    "hypothesis_gen": {
-        "task_type": "research",
-        "skills": ["hypothesis-formulation"],
+        "skills": ["research-gap-identification", "hypothesis-formulation"],
         "top_k": 6,
     },
     "experiment_design": {
@@ -56,72 +41,32 @@ STAGE_SKILL_MAP: dict[str, dict[str, Any]] = {
         "skills": ["experiment-design-rigor"],
         "top_k": 6,
     },
-    "code_generation": {
+    "code_setup": {
         "task_type": "coding",
         "skills": ["hardware-aware-coding"],
         "top_k": 6,
     },
-    "resource_planning": {
-        "task_type": "productivity",
-        "skills": [],
-        "top_k": 3,
-    },
-    "experiment_run": {
+    "experiment_execute": {
         "task_type": "automation",
         "skills": ["experiment-debugging"],
-        "top_k": 4,
-    },
-    "iterative_refine": {
-        "task_type": "coding",
-        "skills": ["experiment-debugging"],
         "top_k": 6,
     },
-    "result_analysis": {
+    "analysis_decision": {
         "task_type": "data_analysis",
-        "skills": ["statistical-analysis"],
+        "skills": ["statistical-analysis", "research-pivot-decision"],
         "top_k": 6,
     },
-    "research_decision": {
-        "task_type": "research",
-        "skills": ["research-pivot-decision"],
-        "top_k": 4,
-    },
-    "paper_outline": {
-        "task_type": "communication",
-        "skills": ["academic-writing-structure"],
-        "top_k": 4,
-    },
-    "paper_draft": {
-        "task_type": "communication",
-        "skills": ["academic-writing-structure"],
-        "top_k": 6,
-    },
-    "peer_review": {
-        "task_type": "communication",
-        "skills": ["peer-review-methodology"],
-        "top_k": 6,
-    },
-    "paper_revision": {
+    "paper_write": {
         "task_type": "communication",
         "skills": ["academic-writing-structure", "peer-review-methodology"],
         "top_k": 6,
     },
-    "quality_gate": {
+    "quality_check": {
         "task_type": "research",
         "skills": ["peer-review-methodology"],
         "top_k": 4,
     },
-    "knowledge_archive": {
-        "task_type": "automation",
-        "skills": [],
-        "top_k": 2,
-    },
-    "export_publish": {
-        "task_type": "automation",
-        "skills": [],
-        "top_k": 2,
-    },
-    "citation_verify": {
+    "export_verify": {
         "task_type": "research",
         "skills": ["citation-integrity"],
         "top_k": 4,

@@ -10,10 +10,10 @@ from scholarclaw_engine.metaclaw_bridge.prm_gate import (
 
 def test_gate_instructions_cover_expected_stages():
     """PRM gate instructions should cover key gate stages."""
-    assert 5 in _GATE_INSTRUCTIONS
+    assert 3 in _GATE_INSTRUCTIONS
+    assert 6 in _GATE_INSTRUCTIONS
     assert 9 in _GATE_INSTRUCTIONS
-    assert 15 in _GATE_INSTRUCTIONS
-    assert 20 in _GATE_INSTRUCTIONS
+    assert 11 in _GATE_INSTRUCTIONS
 
 
 def test_should_gate():
@@ -21,10 +21,10 @@ def test_should_gate():
         api_base="http://test",
         api_key="test",
     )
-    assert gate.should_gate(5) is True
+    assert gate.should_gate(3) is True
+    assert gate.should_gate(6) is True
     assert gate.should_gate(9) is True
-    assert gate.should_gate(15) is True
-    assert gate.should_gate(20) is True
+    assert gate.should_gate(11) is True
     assert gate.should_gate(1) is False
     assert gate.should_gate(10) is False
 
@@ -62,7 +62,7 @@ def test_evaluate_stage_majority_pass(mock_call):
         api_key="test",
         votes=3,
     )
-    score = gate.evaluate_stage(20, "This is a good paper.")
+    score = gate.evaluate_stage(11, "This is a good paper.")
     assert score == 1.0
 
 
@@ -75,7 +75,7 @@ def test_evaluate_stage_majority_fail(mock_call):
         api_key="test",
         votes=3,
     )
-    score = gate.evaluate_stage(20, "This paper has critical issues.")
+    score = gate.evaluate_stage(11, "This paper has critical issues.")
     assert score == -1.0
 
 
@@ -88,5 +88,5 @@ def test_evaluate_stage_all_failed(mock_call):
         api_key="test",
         votes=3,
     )
-    score = gate.evaluate_stage(20, "test")
+    score = gate.evaluate_stage(11, "test")
     assert score == 0.0

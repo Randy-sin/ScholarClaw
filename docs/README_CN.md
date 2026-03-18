@@ -76,17 +76,14 @@ experiment:
 
 ## 内部机制
 
-流水线按**关注点**划分为若干阶段组：
+流水线按**关注点**划分为五个阶段组：
 
 ```
- 定义       → 把主题拆解为结构化子问题
- 文献       → 检索 arXiv / Semantic Scholar / OpenAlex，筛选，提取
- 综合       → 聚类发现、定位空白、形成假设
- 设计       → 规划实验、生成适配硬件的代码
- 执行       → 沙箱运行、检测失败、自动修复
- 分析       → 评估结果，决定：继续 / 调整 / 转向
- 撰写       → 大纲 → 初稿 → 评审 → 修订
- 终稿       → 质量检查、LaTeX 导出、引用审计
+ 探索       → 定义问题、检索文献、筛选、提取知识
+ 构想       → 综合发现、形成假设、设计实验、生成代码
+ 实验       → 沙箱运行、自动修复、分析结果、决定：继续或转向
+ 撰写       → 初稿、同行评审、修订
+ 交付       → 质量检查、LaTeX 导出、引用审计
 ```
 
 两个反馈循环防止流水线跑偏：
@@ -210,7 +207,7 @@ export:
   authors: "Anonymous"
 
 security:
-  hitl_required_stages: [5, 9, 20]
+  hitl_required_stages: [3, 6, 11]
   allow_publish_without_approval: false
 ```
 </details>
@@ -222,7 +219,7 @@ security:
 ```bash
 scholarclaw run --topic "..." --auto-approve          # 完整流水线
 scholarclaw run --config my.yaml --topic "..."        # 自定义配置
-scholarclaw run --from-stage PAPER_OUTLINE             # 从中间阶段恢复
+scholarclaw run --from-stage PAPER_WRITE               # 从中间阶段恢复
 scholarclaw validate --config my.yaml                  # 仅验证配置
 ```
 

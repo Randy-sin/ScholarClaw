@@ -55,7 +55,7 @@ llm:
   base_url: https://example.invalid/v1
   api_key_env: OPENAI_API_KEY
 security:
-  hitl_required_stages: [5, 9, 20]
+  hitl_required_stages: [3, 6, 11]
 experiment:
   mode: simulated
 """.strip()
@@ -87,7 +87,7 @@ def _valid_config_data() -> dict[str, dict[str, object]]:
             "primary_model": "gpt-4.1",
             "fallback_models": ["gpt-4o-mini", "gpt-4o"],
         },
-        "security": {"hitl_required_stages": [5, 9, 20]},
+        "security": {"hitl_required_stages": [3, 6, 11]},
         "experiment": {
             "mode": "simulated",
             "metric_direction": "minimize",
@@ -99,7 +99,7 @@ def test_valid_config_data_helper_returns_expected_baseline_shape():
     data = _valid_config_data()
     assert data["project"]["name"] == "demo"
     assert data["knowledge_base"]["root"] == "docs/kb"
-    assert data["security"]["hitl_required_stages"] == [5, 9, 20]
+    assert data["security"]["hitl_required_stages"] == [3, 6, 11]
 
 
 def test_validate_config_with_valid_data_returns_ok_true(tmp_path: Path):
@@ -142,12 +142,12 @@ def test_validate_config_rejects_invalid_knowledge_base_backend(tmp_path: Path):
     assert "Invalid knowledge_base.backend: sqlite" in result.errors
 
 
-@pytest.mark.parametrize("entry", [0, 24, "5", 9.1])
+@pytest.mark.parametrize("entry", [0, 13, "5", 9.1])
 def test_validate_config_rejects_invalid_hitl_required_stages_entries(
     tmp_path: Path, entry: object
 ):
     data = _valid_config_data()
-    data["security"]["hitl_required_stages"] = [5, entry, 20]
+    data["security"]["hitl_required_stages"] = [3, entry, 11]
 
     result = validate_config(data, project_root=tmp_path, check_paths=False)
 
@@ -157,7 +157,7 @@ def test_validate_config_rejects_invalid_hitl_required_stages_entries(
 
 def test_validate_config_rejects_non_list_hitl_required_stages(tmp_path: Path):
     data = _valid_config_data()
-    data["security"]["hitl_required_stages"] = "5,9,20"
+    data["security"]["hitl_required_stages"] = "3,6,11"
 
     result = validate_config(data, project_root=tmp_path, check_paths=False)
 
@@ -229,13 +229,13 @@ def test_load_config_wrapper_returns_rcconfig(tmp_path: Path):
     config = load_config(config_path, project_root=tmp_path)
 
     assert isinstance(config, RCConfig)
-    assert config.security.hitl_required_stages == (5, 9, 20)
+    assert config.security.hitl_required_stages == (3, 6, 11)
 
 
 def test_security_config_defaults_match_expected_values():
     defaults = SecurityConfig()
 
-    assert defaults.hitl_required_stages == (5, 9, 20)
+    assert defaults.hitl_required_stages == (3, 6, 11)
     assert defaults.allow_publish_without_approval is False
     assert defaults.redact_sensitive_logs is True
 
@@ -313,7 +313,7 @@ def test_rcconfig_from_dict_uses_default_security_when_missing(tmp_path: Path):
     del data["security"]
 
     config = RCConfig.from_dict(data, project_root=tmp_path, check_paths=False)
-    assert config.security.hitl_required_stages == (5, 9, 20)
+    assert config.security.hitl_required_stages == (3, 6, 11)
 
 
 def test_load_uses_file_parent_as_default_project_root(tmp_path: Path):

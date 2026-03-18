@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real E2E test: run all 22 stages with actual LLM API calls.
+"""Real E2E test: run all 12 stages with actual LLM API calls.
 
 Usage:
     .venv_arc/bin/python3 tests/e2e_real_llm.py
@@ -72,7 +72,7 @@ def main() -> None:
 
     # --- Report ---
     print(f"\n{'=' * 70}")
-    print(f"RESULTS: {len(results)}/22 stages executed in {total_time:.1f}s")
+    print(f"RESULTS: {len(results)}/12 stages executed in {total_time:.1f}s")
     print(f"{'=' * 70}")
 
     passed = 0
@@ -94,11 +94,11 @@ def main() -> None:
     # --- Validate key artifacts ---
     checks = [
         ("Stage 1 goal.md", "stage-01/goal.md"),
-        ("Stage 10 experiment.py", "stage-10/experiment.py"),
-        ("Stage 12 runs/", "stage-12/runs"),
-        ("Stage 14 experiment_summary.json", "stage-14/experiment_summary.json"),
-        ("Stage 17 paper_draft.md", "stage-17/paper_draft.md"),
-        ("Stage 22 export files", "stage-22"),
+        ("Stage 7 experiment.py", "stage-07/experiment.py"),
+        ("Stage 8 runs/", "stage-08/runs"),
+        ("Stage 9 experiment_summary.json", "stage-09/experiment_summary.json"),
+        ("Stage 10 paper_draft.md", "stage-10/paper_draft.md"),
+        ("Stage 12 export files", "stage-12"),
     ]
     print("\nArtifact Checks:")
     for label, path in checks:
@@ -114,7 +114,7 @@ def main() -> None:
             print(f"  {'❌'} {label}: NOT FOUND")
 
     # --- Check experiment_summary.json has real data ---
-    summary_path = run_dir / "stage-14" / "experiment_summary.json"
+    summary_path = run_dir / "stage-09" / "experiment_summary.json"
     if summary_path.exists():
         summary = json.loads(summary_path.read_text())
         has_metrics = bool(summary.get("metrics_summary"))
@@ -126,7 +126,7 @@ def main() -> None:
                 print(f"     - {k}: {v}")
 
     # --- Check paper draft has real data (not placeholder) ---
-    draft_path = run_dir / "stage-17" / "paper_draft.md"
+    draft_path = run_dir / "stage-10" / "paper_draft.md"
     if draft_path.exists():
         draft = draft_path.read_text()
         has_placeholder = "no quantitative results yet" in draft.lower()
@@ -136,14 +136,14 @@ def main() -> None:
         )
 
     # --- Check validation report ---
-    val_report = run_dir / "stage-10" / "validation_report.md"
+    val_report = run_dir / "stage-07" / "validation_report.md"
     if val_report.exists():
         print(f"  🔍 Code validation report: {val_report.stat().st_size} bytes")
         print(f"     {val_report.read_text()[:200]}")
 
     # Final verdict
-    if passed == 22 and failed == 0:
-        print(f"\n🎉 ALL 22 STAGES PASSED!")
+    if passed == 12 and failed == 0:
+        print(f"\n🎉 ALL 12 STAGES PASSED!")
         sys.exit(0)
     else:
         print(f"\n⚠️  {failed} stages did not pass.")

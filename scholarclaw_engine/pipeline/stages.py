@@ -1,15 +1,7 @@
-"""22-stage ScholarClaw pipeline state machine.
+"""ScholarClaw pipeline state machine.
 
 Defines the stage sequence, status transitions, gate logic, and rollback rules.
-Migrated from arc/state_machine.py (19 stages) with the following changes:
-  - SEARCH_PLAN + SOURCE_CONNECT → SEARCH_STRATEGY
-  - RELEVANCE_SCREEN + QUALITY_SCREEN → LITERATURE_SCREEN
-  - CLUSTER_TOPICS + GAP_ANALYSIS → SYNTHESIS
-  - EXPERIMENT_DESIGN split → EXPERIMENT_DESIGN + CODE_GENERATION
-  - EXECUTE split → EXPERIMENT_RUN + ITERATIVE_REFINE
-  - WRITE_DRAFT split → PAPER_OUTLINE + PAPER_DRAFT
-  - Added PAPER_REVISION, QUALITY_GATE, EXPORT_PUBLISH
-  - RETROSPECTIVE_ARCHIVE split → KNOWLEDGE_ARCHIVE (+ QUALITY_GATE + EXPORT_PUBLISH)
+The pipeline uses 12 stages grouped into 5 phases.
 """
 
 from __future__ import annotations
@@ -20,46 +12,29 @@ from typing import Iterable
 
 
 class Stage(IntEnum):
-    """22-stage research pipeline."""
+    """12-stage research pipeline."""
 
-    # Phase A: Research Scoping
-    TOPIC_INIT = 1
-    PROBLEM_DECOMPOSE = 2
+    # Phase 1: Discovery
+    RESEARCH_SCOPING = 1
+    SEARCH_COLLECT = 2
+    LITERATURE_SCREEN = 3       # GATE
+    KNOWLEDGE_EXTRACT = 4
 
-    # Phase B: Literature Discovery
-    SEARCH_STRATEGY = 3
-    LITERATURE_COLLECT = 4
-    LITERATURE_SCREEN = 5  # GATE
-    KNOWLEDGE_EXTRACT = 6
+    # Phase 2: Ideation
+    HYPOTHESIS_SYNTHESIS = 5
+    EXPERIMENT_DESIGN = 6       # GATE
+    CODE_SETUP = 7
 
-    # Phase C: Knowledge Synthesis
-    SYNTHESIS = 7
-    HYPOTHESIS_GEN = 8
+    # Phase 3: Experimentation
+    EXPERIMENT_EXECUTE = 8
+    ANALYSIS_DECISION = 9
 
-    # Phase D: Experiment Design
-    EXPERIMENT_DESIGN = 9  # GATE
-    CODE_GENERATION = 10  # NEW
-    RESOURCE_PLANNING = 11
+    # Phase 4: Composition
+    PAPER_WRITE = 10
 
-    # Phase E: Experiment Execution
-    EXPERIMENT_RUN = 12
-    ITERATIVE_REFINE = 13  # NEW
-
-    # Phase F: Analysis & Decision
-    RESULT_ANALYSIS = 14
-    RESEARCH_DECISION = 15
-
-    # Phase G: Paper Writing
-    PAPER_OUTLINE = 16
-    PAPER_DRAFT = 17
-    PEER_REVIEW = 18
-    PAPER_REVISION = 19  # NEW
-
-    # Phase H: Finalization
-    QUALITY_GATE = 20  # GATE
-    KNOWLEDGE_ARCHIVE = 21
-    EXPORT_PUBLISH = 22
-    CITATION_VERIFY = 23
+    # Phase 5: Delivery
+    QUALITY_CHECK = 11          # GATE
+    EXPORT_VERIFY = 12
 
 
 class StageStatus(str, Enum):
@@ -110,71 +85,52 @@ GATE_STAGES: frozenset[Stage] = frozenset(
     {
         Stage.LITERATURE_SCREEN,
         Stage.EXPERIMENT_DESIGN,
-        Stage.QUALITY_GATE,
+        Stage.QUALITY_CHECK,
     }
 )
 
-# Gate rollback targets: when a gate rejects, where to roll back
 GATE_ROLLBACK: dict[Stage, Stage] = {
-    Stage.LITERATURE_SCREEN: Stage.LITERATURE_COLLECT,  # reject → re-collect
-    Stage.EXPERIMENT_DESIGN: Stage.HYPOTHESIS_GEN,  # reject → re-hypothesize
-    Stage.QUALITY_GATE: Stage.PAPER_OUTLINE,  # reject → rewrite paper
+    Stage.LITERATURE_SCREEN: Stage.SEARCH_COLLECT,
+    Stage.EXPERIMENT_DESIGN: Stage.HYPOTHESIS_SYNTHESIS,
+    Stage.QUALITY_CHECK: Stage.PAPER_WRITE,
 }
 
 # ---------------------------------------------------------------------------
-# Research decision rollback targets (PIVOT/REFINE from Stage 15)
+# Research decision rollback targets (PIVOT/REFINE from Stage 9)
 # ---------------------------------------------------------------------------
 
 DECISION_ROLLBACK: dict[str, Stage] = {
-    "pivot": Stage.HYPOTHESIS_GEN,       # Discard hypotheses, re-generate
-    "refine": Stage.ITERATIVE_REFINE,    # Keep hypotheses, re-run experiments
+    "pivot": Stage.HYPOTHESIS_SYNTHESIS,
+    "refine": Stage.EXPERIMENT_EXECUTE,
 }
 
-MAX_DECISION_PIVOTS: int = 2  # Prevent infinite loops
+MAX_DECISION_PIVOTS: int = 2
 
 # ---------------------------------------------------------------------------
-# Noncritical stages — can be skipped on failure without aborting pipeline
+# Noncritical stages
 # ---------------------------------------------------------------------------
 
-NONCRITICAL_STAGES: frozenset[Stage] = frozenset(
-    {
-        Stage.KNOWLEDGE_ARCHIVE,  # 21: archival doesn't affect paper output
-        # T3.4: CITATION_VERIFY removed — hallucinated citations MUST block export
-    }
-)
+NONCRITICAL_STAGES: frozenset[Stage] = frozenset()
 
 # ---------------------------------------------------------------------------
 # Phase groupings (for UI and reporting)
 # ---------------------------------------------------------------------------
 
 PHASE_MAP: dict[str, tuple[Stage, ...]] = {
-    "A: Research Scoping": (Stage.TOPIC_INIT, Stage.PROBLEM_DECOMPOSE),
-    "B: Literature Discovery": (
-        Stage.SEARCH_STRATEGY,
-        Stage.LITERATURE_COLLECT,
+    "Discovery": (
+        Stage.RESEARCH_SCOPING,
+        Stage.SEARCH_COLLECT,
         Stage.LITERATURE_SCREEN,
         Stage.KNOWLEDGE_EXTRACT,
     ),
-    "C: Knowledge Synthesis": (Stage.SYNTHESIS, Stage.HYPOTHESIS_GEN),
-    "D: Experiment Design": (
+    "Ideation": (
+        Stage.HYPOTHESIS_SYNTHESIS,
         Stage.EXPERIMENT_DESIGN,
-        Stage.CODE_GENERATION,
-        Stage.RESOURCE_PLANNING,
+        Stage.CODE_SETUP,
     ),
-    "E: Experiment Execution": (Stage.EXPERIMENT_RUN, Stage.ITERATIVE_REFINE),
-    "F: Analysis & Decision": (Stage.RESULT_ANALYSIS, Stage.RESEARCH_DECISION),
-    "G: Paper Writing": (
-        Stage.PAPER_OUTLINE,
-        Stage.PAPER_DRAFT,
-        Stage.PEER_REVIEW,
-        Stage.PAPER_REVISION,
-    ),
-    "H: Finalization": (
-        Stage.QUALITY_GATE,
-        Stage.KNOWLEDGE_ARCHIVE,
-        Stage.EXPORT_PUBLISH,
-        Stage.CITATION_VERIFY,
-    ),
+    "Experimentation": (Stage.EXPERIMENT_EXECUTE, Stage.ANALYSIS_DECISION),
+    "Composition": (Stage.PAPER_WRITE,),
+    "Delivery": (Stage.QUALITY_CHECK, Stage.EXPORT_VERIFY),
 }
 
 

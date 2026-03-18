@@ -19,7 +19,7 @@ from scholarclaw_engine.pipeline.stages import Stage
 
 class TestHeartbeatWriting:
     def test_write_heartbeat_creates_file(self, tmp_path: Path) -> None:
-        rc_runner._write_heartbeat(tmp_path, Stage.TOPIC_INIT, "run-hb-1")
+        rc_runner._write_heartbeat(tmp_path, Stage.RESEARCH_SCOPING, "run-hb-1")
         hb_path = tmp_path / "heartbeat.json"
         assert hb_path.exists()
 
@@ -28,14 +28,14 @@ class TestHeartbeatWriting:
         data = json.loads((tmp_path / "heartbeat.json").read_text())
         assert data["pid"] == os.getpid()
         assert data["last_stage"] == 8
-        assert data["last_stage_name"] == "HYPOTHESIS_GEN"
+        assert data["last_stage_name"] == "HYPOTHESIS_SYNTHESIS"
         assert data["run_id"] == "run-hb-2"
         assert "timestamp" in data
 
     def test_heartbeat_updates_on_each_stage(self, tmp_path: Path) -> None:
-        rc_runner._write_heartbeat(tmp_path, Stage.TOPIC_INIT, "run-1")
+        rc_runner._write_heartbeat(tmp_path, Stage.RESEARCH_SCOPING, "run-1")
         data1 = json.loads((tmp_path / "heartbeat.json").read_text())
-        rc_runner._write_heartbeat(tmp_path, Stage.PAPER_DRAFT, "run-1")
+        rc_runner._write_heartbeat(tmp_path, Stage.PAPER_WRITE, "run-1")
         data2 = json.loads((tmp_path / "heartbeat.json").read_text())
         assert data2["last_stage"] == 17
         assert data1["last_stage"] == 1

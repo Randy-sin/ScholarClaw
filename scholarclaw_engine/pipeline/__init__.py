@@ -1,1 +1,1 @@
-"""Pipeline core — 22-stage research pipeline."""
+"""Pipeline core — 12-stage research pipeline."""

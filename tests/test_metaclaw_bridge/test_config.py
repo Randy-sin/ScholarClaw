@@ -46,7 +46,7 @@ def test_metaclaw_bridge_enabled():
                 "api_key": "test-key",
                 "model": "gpt-5.4",
                 "votes": 5,
-                "gate_stages": [5, 20],
+                "gate_stages": [3, 11],
             },
             "lesson_to_skill": {
                 "enabled": True,
@@ -60,7 +60,7 @@ def test_metaclaw_bridge_enabled():
     assert cfg.metaclaw_bridge.proxy_url == "http://localhost:31000"
     assert cfg.metaclaw_bridge.prm.enabled is True
     assert cfg.metaclaw_bridge.prm.votes == 5
-    assert cfg.metaclaw_bridge.prm.gate_stages == (5, 20)
+    assert cfg.metaclaw_bridge.prm.gate_stages == (3, 11)
     assert cfg.metaclaw_bridge.lesson_to_skill.min_severity == "warning"
     assert cfg.metaclaw_bridge.lesson_to_skill.max_skills_per_run == 5
 

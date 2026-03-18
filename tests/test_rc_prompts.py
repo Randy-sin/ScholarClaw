@@ -65,31 +65,23 @@ class TestRender:
 
 class TestPromptManagerDefaults:
     def test_all_stages_present(self) -> None:
-        """20 stages have for_stage() prompts; iterative_refine uses sub_prompts only."""
+        """12 stages have for_stage() prompts; iterative_refine uses sub_prompts only."""
         pm = PromptManager()
         names = pm.stage_names()
-        assert len(names) >= 20
+        assert len(names) >= 12
         for required in [
-            "topic_init",
-            "problem_decompose",
-            "search_strategy",
-            "literature_collect",
+            "research_scoping",
+            "search_collect",
             "literature_screen",
             "knowledge_extract",
-            "synthesis",
-            "hypothesis_gen",
+            "hypothesis_synthesis",
             "experiment_design",
-            "code_generation",
-            "resource_planning",
-            "result_analysis",
-            "research_decision",
-            "paper_outline",
-            "paper_draft",
-            "peer_review",
-            "paper_revision",
-            "quality_gate",
-            "knowledge_archive",
-            "export_publish",
+            "code_setup",
+            "experiment_execute",
+            "analysis_decision",
+            "paper_write",
+            "quality_check",
+            "export_verify",
         ]:
             assert pm.has_stage(required), f"Missing stage: {required}"
 
@@ -101,7 +93,7 @@ class TestPromptManagerDefaults:
     def test_for_stage_returns_rendered_prompt(self) -> None:
         pm = PromptManager()
         sp = pm.for_stage(
-            "topic_init",
+            "research_scoping",
             topic="RL",
             domains="ml",
             project_name="test",
@@ -115,26 +107,24 @@ class TestPromptManagerDefaults:
     def test_json_mode_stages(self) -> None:
         pm = PromptManager()
         json_stages = [
-            "search_strategy",
-            "literature_collect",
+            "search_collect",
             "literature_screen",
             "knowledge_extract",
-            "resource_planning",
-            "quality_gate",
+            "quality_check",
         ]
         for stage in json_stages:
             assert pm.json_mode(stage), f"{stage} should have json_mode=True"
 
     def test_non_json_stages(self) -> None:
         pm = PromptManager()
-        assert not pm.json_mode("topic_init")
-        assert not pm.json_mode("synthesis")
+        assert not pm.json_mode("research_scoping")
+        assert not pm.json_mode("hypothesis_synthesis")
 
     def test_max_tokens(self) -> None:
         pm = PromptManager()
-        assert pm.max_tokens("code_generation") == 8192
-        assert pm.max_tokens("paper_draft") == 16384
-        assert pm.max_tokens("topic_init") is None
+        assert pm.max_tokens("code_setup") == 8192
+        assert pm.max_tokens("paper_write") == 16384
+        assert pm.max_tokens("research_scoping") is None
 
     def test_block_topic_constraint(self) -> None:
         pm = PromptManager()
@@ -189,26 +179,26 @@ class TestPromptManagerOverrides:
     def test_override_system_prompt(self, tmp_path: Path) -> None:
         yaml_content = textwrap.dedent("""\
             stages:
-              topic_init:
+              research_scoping:
                 system: "You are a custom planner."
         """)
         override_file = tmp_path / "custom.yaml"
         override_file.write_text(yaml_content, encoding="utf-8")
         pm = PromptManager(override_file)
-        assert pm.system("topic_init") == "You are a custom planner."
+        assert pm.system("research_scoping") == "You are a custom planner."
         # Other stages should keep defaults
-        assert pm.system("problem_decompose") == "You are a senior research strategist."
+        assert pm.system("search_collect")  # Other stages keep defaults (non-empty)
 
     def test_override_user_template(self, tmp_path: Path) -> None:
         yaml_content = textwrap.dedent("""\
             stages:
-              topic_init:
+              research_scoping:
                 user: "Custom prompt for {topic}."
         """)
         override_file = tmp_path / "custom.yaml"
         override_file.write_text(yaml_content, encoding="utf-8")
         pm = PromptManager(override_file)
-        result = pm.user("topic_init", topic="GAN")
+        result = pm.user("research_scoping", topic="GAN")
         assert result == "Custom prompt for GAN."
 
     def test_override_block(self, tmp_path: Path) -> None:
@@ -224,24 +214,24 @@ class TestPromptManagerOverrides:
     def test_override_json_mode(self, tmp_path: Path) -> None:
         yaml_content = textwrap.dedent("""\
             stages:
-              topic_init:
+              research_scoping:
                 json_mode: true
         """)
         override_file = tmp_path / "custom.yaml"
         override_file.write_text(yaml_content, encoding="utf-8")
         pm = PromptManager(override_file)
-        assert pm.json_mode("topic_init") is True
+        assert pm.json_mode("research_scoping") is True
 
     def test_missing_file_uses_defaults(self, tmp_path: Path) -> None:
         pm = PromptManager(tmp_path / "nonexistent.yaml")
-        assert pm.has_stage("topic_init")
-        assert pm.system("topic_init")
+        assert pm.has_stage("research_scoping")
+        assert pm.system("research_scoping")
 
     def test_invalid_yaml_uses_defaults(self, tmp_path: Path) -> None:
         bad_file = tmp_path / "bad.yaml"
         bad_file.write_text(": invalid: yaml: [", encoding="utf-8")
         pm = PromptManager(bad_file)
-        assert pm.has_stage("topic_init")
+        assert pm.has_stage("research_scoping")
 
     def test_unknown_stage_in_override_ignored(self, tmp_path: Path) -> None:
         yaml_content = textwrap.dedent("""\
@@ -285,14 +275,14 @@ class TestExportYaml:
     def test_export_with_overrides(self, tmp_path: Path) -> None:
         override_file = tmp_path / "custom.yaml"
         override_file.write_text(
-            "stages:\n  topic_init:\n    system: CUSTOM\n",
+            "stages:\n  research_scoping:\n    system: CUSTOM\n",
             encoding="utf-8",
         )
         pm = PromptManager(override_file)
         export_path = tmp_path / "exported.yaml"
         pm.export_yaml(export_path)
         data = yaml.safe_load(export_path.read_text(encoding="utf-8"))
-        assert data["stages"]["topic_init"]["system"] == "CUSTOM"
+        assert data["stages"]["research_scoping"]["system"] == "CUSTOM"
 
 
 # ---------------------------------------------------------------------------

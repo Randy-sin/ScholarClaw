@@ -2,7 +2,7 @@
 
 ## Description
 
-Run ScholarClaw's 23-stage autonomous research pipeline. Given a research topic, this skill orchestrates the entire research workflow: literature review → hypothesis generation → experiment design → code generation & execution → result analysis → paper writing → peer review → final export.
+Run ScholarClaw's autonomous research pipeline. Given a research topic, this skill orchestrates the entire research workflow: literature discovery → hypothesis synthesis → experiment execution → paper writing → export with citation verification.
 
 ## Trigger Conditions
 
@@ -38,8 +38,8 @@ Options:
 - `--topic` / `-t`: Override the research topic from config
 - `--config` / `-c`: Config file path (default: `config.yaml`)
 - `--output` / `-o`: Output directory (default: `artifacts/rc-YYYYMMDD-HHMMSS-HASH/`)
-- `--from-stage`: Resume from a specific stage (e.g., `PAPER_OUTLINE`)
-- `--auto-approve`: Auto-approve gate stages (5, 9, 20) without human input
+- `--from-stage`: Resume from a specific stage (e.g., `PAPER_WRITE`)
+- `--auto-approve`: Auto-approve gate stages (3, 6, 11) without human input
 
 **Option B: Python API**
 
@@ -84,22 +84,20 @@ After a successful run, the output directory contains:
 
 ```
 artifacts/<run-id>/
-├── stage-1/                # TOPIC_INIT outputs
-├── stage-2/                # PROBLEM_DECOMPOSE outputs
+├── stage-01/               # RESEARCH_SCOPING outputs
+├── stage-02/               # SEARCH_COLLECT outputs
 ├── ...
-├── stage-10/
-│   └── experiment.py       # Generated experiment code
-├── stage-12/
+├── stage-07/
+│   └── experiment/         # Generated experiment code
+├── stage-08/
 │   └── runs/run-1.json     # Experiment execution results
-├── stage-14/
-│   ├── experiment_summary.json  # Aggregated metrics
-│   └── results_table.tex        # LaTeX results table
-├── stage-17/
+├── stage-09/
+│   ├── analysis.md         # Results analysis
+│   └── decision.md         # PROCEED/PIVOT decision
+├── stage-10/
 │   └── paper_draft.md      # Full paper draft
-├── stage-22/
-│   └── charts/             # Generated visualizations
-│       ├── metric_trajectory.png
-│       └── experiment_comparison.png
+├── stage-12/
+│   └── verification_report.json  # Citation audit
 └── pipeline_summary.json   # Overall pipeline status
 ```
 
@@ -116,7 +114,7 @@ artifacts/<run-id>/
 - **Config validation error**: Run `scholarclaw validate --config config.yaml`
 - **LLM connection failure**: Check `llm.base_url` and API key
 - **Sandbox execution failure**: Verify `experiment.sandbox.python_path` exists and has numpy installed
-- **Gate rejection**: Use `--auto-approve` or manually approve at stages 5, 9, 20
+- **Gate rejection**: Use `--auto-approve` or manually approve at stages 3, 6, 11
 
 ## Tools Required
 

@@ -68,7 +68,7 @@ def _header(summary: dict[str, Any], run_dir: Path) -> str:
 def _paper_section(run_dir: Path) -> str:
     lines = ["## Paper"]
 
-    draft_path = run_dir / "stage-17" / "paper_draft.md"
+    draft_path = run_dir / "stage-10" / "paper_draft.md"
     if draft_path.exists():
         text = draft_path.read_text(encoding="utf-8")
         word_count = len(text.split())
@@ -78,15 +78,15 @@ def _paper_section(run_dir: Path) -> str:
     else:
         lines.append("- Draft: not generated")
 
-    final_path = run_dir / "stage-22" / "paper_final.md"
+    final_path = run_dir / "stage-12" / "paper_final.md"
     if final_path.exists():
         lines.append(f"- Final: `{final_path.relative_to(run_dir)}`")
 
-    tex_path = run_dir / "stage-22" / "paper.tex"
+    tex_path = run_dir / "stage-12" / "paper.tex"
     if tex_path.exists():
         lines.append(f"- LaTeX: `{tex_path.relative_to(run_dir)}`")
 
-    rev_path = run_dir / "stage-19" / "paper_revised.md"
+    rev_path = run_dir / "stage-10" / "paper_revised.md"
     if rev_path.exists():
         lines.append(f"- Revised: `{rev_path.relative_to(run_dir)}`")
 
@@ -96,11 +96,11 @@ def _paper_section(run_dir: Path) -> str:
 def _experiment_section(run_dir: Path) -> str:
     lines = ["## Experiments"]
 
-    code_path = run_dir / "stage-10" / "experiment_code.py"
+    code_path = run_dir / "stage-07" / "experiment_code.py"
     if code_path.exists():
         lines.append(f"- Code: `{code_path.relative_to(run_dir)}`")
 
-    results_path = run_dir / "stage-12" / "experiment_results.json"
+    results_path = run_dir / "stage-08" / "experiment_results.json"
     if results_path.exists():
         try:
             loaded = json.loads(results_path.read_text(encoding="utf-8"))
@@ -118,7 +118,7 @@ def _experiment_section(run_dir: Path) -> str:
     else:
         lines.append("- Results: not available")
 
-    analysis_path = run_dir / "stage-14" / "analysis.md"
+    analysis_path = run_dir / "stage-09" / "analysis.md"
     if analysis_path.exists():
         lines.append(f"- Analysis: `{analysis_path.relative_to(run_dir)}`")
 
@@ -128,7 +128,7 @@ def _experiment_section(run_dir: Path) -> str:
 def _citation_section(run_dir: Path) -> str:
     lines = ["## Citations"]
 
-    bib_path = run_dir / "stage-22" / "references.bib"
+    bib_path = run_dir / "stage-12" / "references.bib"
     if not bib_path.exists():
         bib_path = run_dir / "stage-04" / "references.bib"
 
@@ -139,7 +139,7 @@ def _citation_section(run_dir: Path) -> str:
     else:
         lines.append("- References: not available")
 
-    verify_path = run_dir / "stage-23" / "verification_report.json"
+    verify_path = run_dir / "stage-12" / "verification_report.json"
     if verify_path.exists():
         try:
             loaded = json.loads(verify_path.read_text(encoding="utf-8"))

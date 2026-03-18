@@ -64,7 +64,7 @@ def rc_config(tmp_path: Path) -> RCConfig:
             "primary_model": "fake-model",
             "fallback_models": [],
         },
-        "security": {"hitl_required_stages": [5, 9, 20]},
+        "security": {"hitl_required_stages": [3, 6, 11]},
         "experiment": {"mode": "sandbox"},
     }
     return RCConfig.from_dict(data, project_root=tmp_path, check_paths=False)
@@ -90,9 +90,9 @@ def _write_prior_artifact(
     (stage_dir / filename).write_text(content, encoding="utf-8")
 
 
-def test_executor_map_has_23_entries() -> None:
+def test_executor_map_has_12_entries() -> None:
     executor_map = getattr(rc_executor, "EXECUTOR_MAP", rc_executor._STAGE_EXECUTORS)
-    assert len(executor_map) == 23
+    assert len(executor_map) == 12
 
 
 def test_every_stage_member_has_matching_executor() -> None:
@@ -102,9 +102,9 @@ def test_every_stage_member_has_matching_executor() -> None:
 
 def test_stage_result_dataclass_fields() -> None:
     result = rc_executor.StageResult(
-        stage=Stage.TOPIC_INIT, status=StageStatus.DONE, artifacts=("goal.md",)
+        stage=Stage.RESEARCH_SCOPING, status=StageStatus.DONE, artifacts=("goal.md",)
     )
-    assert result.stage == Stage.TOPIC_INIT
+    assert result.stage == Stage.RESEARCH_SCOPING
     assert result.status == StageStatus.DONE
     assert result.artifacts == ("goal.md",)
     assert result.error is None
@@ -177,8 +177,8 @@ def test_build_context_preamble_includes_selected_prior_artifacts(
     rc_config: RCConfig, run_dir: Path
 ) -> None:
     _write_prior_artifact(run_dir, 1, "goal.md", "goal content")
-    _write_prior_artifact(run_dir, 8, "hypotheses.md", "hyp content")
-    _write_prior_artifact(run_dir, 7, "synthesis.md", "synth content")
+    _write_prior_artifact(run_dir, 5, "hypotheses.md", "hyp content")
+    _write_prior_artifact(run_dir, 5, "synthesis.md", "synth content")
     text = rc_executor._build_context_preamble(
         rc_config,
         run_dir,
@@ -202,7 +202,7 @@ def test_read_prior_artifact_finds_newest_file(run_dir: Path) -> None:
 
 
 def test_read_prior_artifact_finds_directory_path(run_dir: Path) -> None:
-    cards_dir = run_dir / "stage-06" / "cards"
+    cards_dir = run_dir / "stage-02" / "cards"
     cards_dir.mkdir(parents=True)
     (cards_dir / "card-1.json").write_text("{}", encoding="utf-8")
     found = rc_executor._read_prior_artifact(run_dir, "cards/")
@@ -217,18 +217,18 @@ def test_write_stage_meta_writes_expected_json(run_dir: Path) -> None:
     stage_dir = run_dir / "stage-01"
     stage_dir.mkdir()
     result = rc_executor.StageResult(
-        stage=Stage.TOPIC_INIT,
+        stage=Stage.RESEARCH_SCOPING,
         status=StageStatus.DONE,
         artifacts=("goal.md",),
         decision="proceed",
         evidence_refs=("stage-01/goal.md",),
     )
-    rc_executor._write_stage_meta(stage_dir, Stage.TOPIC_INIT, "run-abc", result)
+    rc_executor._write_stage_meta(stage_dir, Stage.RESEARCH_SCOPING, "run-abc", result)
     payload = cast(
         dict[str, Any],
         json.loads((stage_dir / "decision.json").read_text(encoding="utf-8")),
     )
-    assert payload["stage_id"] == "01-topic_init"
+    assert payload["stage_id"] == "01-research_scoping"
     assert payload["run_id"] == "run-abc"
     assert payload["status"] == "done"
     assert payload["decision"] == "proceed"
@@ -251,7 +251,7 @@ def test_execute_stage_creates_stage_dir_writes_artifacts_and_meta(
     )
 
     result = rc_executor.execute_stage(
-        Stage.TOPIC_INIT,
+        Stage.RESEARCH_SCOPING,
         run_dir=run_dir,
         run_id="run-1",
         config=rc_config,
@@ -298,12 +298,12 @@ def test_execute_stage_contract_validation_missing_output_file_marks_failed(
     ):
         _ = llm
         return rc_executor.StageResult(
-            stage=Stage.TOPIC_INIT, status=StageStatus.DONE, artifacts=("goal.md",)
+            stage=Stage.RESEARCH_SCOPING, status=StageStatus.DONE, artifacts=("goal.md",)
         )
 
-    monkeypatch.setitem(rc_executor._STAGE_EXECUTORS, Stage.TOPIC_INIT, bad_executor)
+    monkeypatch.setitem(rc_executor._STAGE_EXECUTORS, Stage.RESEARCH_SCOPING, bad_executor)
     result = rc_executor.execute_stage(
-        Stage.TOPIC_INIT,
+        Stage.RESEARCH_SCOPING,
         run_dir=run_dir,
         run_id="run-2",
         config=rc_config,
@@ -358,7 +358,7 @@ def test_execute_stage_missing_required_input_returns_failed(
     adapters: AdapterBundle,
 ) -> None:
     result = rc_executor.execute_stage(
-        Stage.PROBLEM_DECOMPOSE,
+        Stage.RESEARCH_SCOPING,
         run_dir=run_dir,
         run_id="run-4",
         config=rc_config,
@@ -470,7 +470,7 @@ def test_execute_stage_llm_client_creation_error_falls_back_without_crash(
 
     monkeypatch.setattr("scholarclaw_engine.pipeline.executor.LLMClient.from_rc_config", boom)
     result = rc_executor.execute_stage(
-        Stage.TOPIC_INIT,
+        Stage.RESEARCH_SCOPING,
         run_dir=run_dir,
         run_id="run-7",
         config=rc_config,
@@ -500,10 +500,10 @@ def test_execute_stage_executor_exception_returns_failed(
         raise RuntimeError("stage exploded")
 
     monkeypatch.setitem(
-        rc_executor._STAGE_EXECUTORS, Stage.TOPIC_INIT, raising_executor
+        rc_executor._STAGE_EXECUTORS, Stage.RESEARCH_SCOPING, raising_executor
     )
     result = rc_executor.execute_stage(
-        Stage.TOPIC_INIT,
+        Stage.RESEARCH_SCOPING,
         run_dir=run_dir,
         run_id="run-8",
         config=rc_config,
@@ -518,16 +518,18 @@ def test_execute_stage_executor_exception_returns_failed(
 @pytest.mark.parametrize(
     "stage",
     [
-        Stage.TOPIC_INIT,
-        Stage.PROBLEM_DECOMPOSE,
-        Stage.SEARCH_STRATEGY,
-        Stage.LITERATURE_COLLECT,
+        Stage.RESEARCH_SCOPING,
+        Stage.SEARCH_COLLECT,
         Stage.LITERATURE_SCREEN,
         Stage.KNOWLEDGE_EXTRACT,
-        Stage.SYNTHESIS,
-        Stage.HYPOTHESIS_GEN,
+        Stage.HYPOTHESIS_SYNTHESIS,
         Stage.EXPERIMENT_DESIGN,
-        Stage.CODE_GENERATION,
+        Stage.CODE_SETUP,
+        Stage.EXPERIMENT_EXECUTE,
+        Stage.ANALYSIS_DECISION,
+        Stage.PAPER_WRITE,
+        Stage.QUALITY_CHECK,
+        Stage.EXPORT_VERIFY,
     ],
 )
 def test_stage_executor_mapping_values_are_callable(stage: Stage) -> None:
@@ -544,7 +546,7 @@ class TestStageHealth:
             check_paths=False,
         )
         result = execute_stage(
-            Stage.TOPIC_INIT,
+            Stage.RESEARCH_SCOPING,
             run_dir=tmp_path,
             run_id="test-health",
             config=config,
@@ -574,7 +576,7 @@ class TestStageHealth:
             mock_llm_cls.from_rc_config.return_value = mock_client
 
             execute_stage(
-                Stage.TOPIC_INIT,
+                Stage.RESEARCH_SCOPING,
                 run_dir=tmp_path,
                 run_id="test-health-fields",
                 config=config,
@@ -612,7 +614,7 @@ class TestStageHealth:
             mock_llm_cls.from_rc_config.return_value = mock_client
 
             execute_stage(
-                Stage.TOPIC_INIT,
+                Stage.RESEARCH_SCOPING,
                 run_dir=tmp_path,
                 run_id="test-duration",
                 config=config,
@@ -642,10 +644,10 @@ class TestIterativeRefine:
                 "    print(f'val_loss: {0.5 - i*0.05:.4f}')\n"
             ),
         )
-        (run_dir / "stage-12" / "runs").mkdir(parents=True, exist_ok=True)
+        (run_dir / "stage-08" / "runs").mkdir(parents=True, exist_ok=True)
         _write_prior_artifact(
             run_dir,
-            12,
+            8,
             "runs/run-1.json",
             json.dumps(
                 {
@@ -664,7 +666,7 @@ class TestIterativeRefine:
     ) -> None:
         """R10-Fix3: Simulated mode should skip iterative refinement entirely."""
         self._prepare_refine_inputs(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
         # Force simulated mode to test the skip behavior
         import copy
@@ -695,7 +697,7 @@ class TestIterativeRefine:
         adapters: AdapterBundle,
     ) -> None:
         self._prepare_refine_inputs(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         result = rc_executor._execute_iterative_refine(
@@ -706,7 +708,7 @@ class TestIterativeRefine:
             llm=None,
         )
 
-        original_code = (run_dir / "stage-10" / "experiment.py").read_text(
+        original_code = (run_dir / "stage-07" / "experiment.py").read_text(
             encoding="utf-8"
         )
         final_code = (stage_dir / "experiment_final.py").read_text(encoding="utf-8")
@@ -724,7 +726,7 @@ class TestIterativeRefine:
         adapters: AdapterBundle,
     ) -> None:
         self._prepare_refine_inputs(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
         llm = FakeLLMClient(
             "```python\n"
@@ -756,7 +758,7 @@ class TestIterativeRefine:
         import sys
 
         self._prepare_refine_inputs(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         sandbox_data = {
@@ -784,7 +786,7 @@ class TestIterativeRefine:
                 "primary_model": "fake-model",
                 "fallback_models": [],
             },
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -828,7 +830,7 @@ class TestIterativeRefine:
         adapters: AdapterBundle,
     ) -> None:
         self._prepare_refine_inputs(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
         llm = FakeLLMClient(
             "```python\n"
@@ -863,7 +865,7 @@ class TestIterativeRefine:
         import sys
 
         self._prepare_refine_inputs(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         sandbox_data = {
@@ -891,7 +893,7 @@ class TestIterativeRefine:
                 "primary_model": "fake-model",
                 "fallback_models": [],
             },
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -952,7 +954,7 @@ class TestExportPublishCodePackage:
             "experiment_final.py",
             'import numpy\nprint("val_loss: 0.1")\n',
         )
-        stage_dir = tmp_path / "run" / "stage-22"
+        stage_dir = tmp_path / "run" / "stage-12"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         rc_executor._execute_export_publish(
@@ -980,7 +982,7 @@ class TestExportPublishCodePackage:
             "experiment.py",
             'import numpy\nprint("val_loss: 0.1")\n',
         )
-        stage_dir = tmp_path / "run" / "stage-22"
+        stage_dir = tmp_path / "run" / "stage-12"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         rc_executor._execute_export_publish(
@@ -1000,7 +1002,7 @@ class TestExportPublishCodePackage:
         _write_prior_artifact(
             run_dir, 19, "paper_revised.md", "# Test Paper\n\nSome content..."
         )
-        stage_dir = tmp_path / "run" / "stage-22"
+        stage_dir = tmp_path / "run" / "stage-12"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         result = rc_executor._execute_export_publish(
@@ -1035,7 +1037,7 @@ class TestExportPublishCodePackage:
                 "print(accuracy_score([1], [1]))\n"
             ),
         )
-        stage_dir = tmp_path / "run" / "stage-22"
+        stage_dir = tmp_path / "run" / "stage-12"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         rc_executor._execute_export_publish(
@@ -1065,7 +1067,7 @@ class TestExportPublishCodePackage:
             "experiment_final.py",
             'print("val_loss: 0.1")\n',
         )
-        stage_dir = tmp_path / "run" / "stage-22"
+        stage_dir = tmp_path / "run" / "stage-12"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         rc_executor._execute_export_publish(
@@ -1077,11 +1079,11 @@ class TestExportPublishCodePackage:
 
 
 def test_contracts_stage13_includes_experiment_final() -> None:
-    assert "experiment_final/" in CONTRACTS[Stage.ITERATIVE_REFINE].output_files
+    assert "experiment_final/" in CONTRACTS[Stage.EXPERIMENT_EXECUTE].output_files
 
 
 def test_contracts_stage22_includes_code_dir() -> None:
-    assert "code/" in CONTRACTS[Stage.EXPORT_PUBLISH].output_files
+    assert "code/" in CONTRACTS[Stage.EXPORT_VERIFY].output_files
 
 
 # ── P1-1: Topic keyword extraction tests ──
@@ -1181,7 +1183,7 @@ class TestResearchDecisionStructured:
     ) -> None:
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-15"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         _write_prior_artifact(run_dir, 14, "analysis.md", "# Analysis\nResults ok.")
         fake_llm = FakeLLMClient("## Decision\nPROCEED\n## Justification\nGood.")
@@ -1199,7 +1201,7 @@ class TestResearchDecisionStructured:
     ) -> None:
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-15"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         _write_prior_artifact(run_dir, 14, "analysis.md", "# Analysis\nBad results.")
         fake_llm = FakeLLMClient("## Decision\nPIVOT\n## Justification\nFlawed.")
@@ -1213,7 +1215,7 @@ class TestResearchDecisionStructured:
     ) -> None:
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-15"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         result = rc_executor._execute_research_decision(
             stage_dir, run_dir, rc_config, adapters, llm=None
@@ -1316,7 +1318,7 @@ class TestResultAnalysisDebate:
     ) -> None:
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-14"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         _write_prior_artifact(run_dir, 1, "goal.md", "# Goal\nTest")
         _write_prior_artifact(run_dir, 8, "hypotheses.md", "# H1\nTest")
@@ -1337,7 +1339,7 @@ class TestResultAnalysisDebate:
     ) -> None:
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-14"
+        stage_dir = run_dir / "stage-09"
         stage_dir.mkdir(parents=True)
         result = rc_executor._execute_result_analysis(
             stage_dir, run_dir, rc_config, adapters, llm=None
@@ -1555,7 +1557,7 @@ class TestCollectRawExperimentMetrics:
 
     def test_extracts_metrics_from_stdout(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True)
         payload = {
             "metrics": {},
@@ -1570,7 +1572,7 @@ class TestCollectRawExperimentMetrics:
 
     def test_extracts_from_metrics_dict(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True)
         payload = {"metrics": {"loss": 0.042, "accuracy": 0.95}, "stdout": ""}
         (runs_dir / "run-1.json").write_text(json.dumps(payload))
@@ -1581,7 +1583,7 @@ class TestCollectRawExperimentMetrics:
 
     def test_deduplicates_metrics(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True)
         payload = {
             "metrics": {"loss": 0.5},
@@ -1602,7 +1604,7 @@ class TestCollectExperimentEvidence:
         assert rc_executor._collect_experiment_evidence(run_dir) == ""
 
     def test_includes_main_py_code(self, run_dir: Path) -> None:
-        exp_dir = run_dir / "stage-10" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("print('hello')", encoding="utf-8")
         result = rc_executor._collect_experiment_evidence(run_dir)
@@ -1610,7 +1612,7 @@ class TestCollectExperimentEvidence:
         assert "hello" in result
 
     def test_includes_run_metrics(self, run_dir: Path) -> None:
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({"metrics": {"loss": 0.5}, "elapsed_sec": 3.2}),
@@ -1621,7 +1623,7 @@ class TestCollectExperimentEvidence:
         assert "0.5" in result
 
     def test_includes_stderr_excerpt(self, run_dir: Path) -> None:
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -1634,7 +1636,7 @@ class TestCollectExperimentEvidence:
         assert "divide by zero" in result
 
     def test_includes_refinement_summary(self, run_dir: Path) -> None:
-        refine_dir = run_dir / "stage-13"
+        refine_dir = run_dir / "stage-08"  # EXPERIMENT_EXECUTE
         refine_dir.mkdir(parents=True, exist_ok=True)
         (refine_dir / "refinement_log.json").write_text(
             json.dumps({
@@ -1650,7 +1652,7 @@ class TestCollectExperimentEvidence:
         assert "2" in result
 
     def test_includes_actual_trial_count(self, run_dir: Path) -> None:
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({"metrics": {"loss": 0.5}}), encoding="utf-8"
@@ -1840,7 +1842,7 @@ class TestComputeBudgetBlock:
                 "primary_model": "fake-model",
                 "fallback_models": [],
             },
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 60,
@@ -1862,7 +1864,7 @@ class TestComputeBudgetBlock:
         llm = FakeLLMClient(
             "```filename:main.py\nimport numpy as np\nprint('best_loss: 0.1')\n```"
         )
-        stage_dir = run_dir / "stage-11"
+        stage_dir = run_dir / "stage-07"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         rc_executor._execute_code_generation(
@@ -1911,7 +1913,7 @@ class TestPartialTimeoutStatus:
                 "primary_model": "fake-model",
                 "fallback_models": [],
             },
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 2,
@@ -1927,7 +1929,7 @@ class TestPartialTimeoutStatus:
         cfg = RCConfig.from_dict(data, project_root=tmp_path, check_paths=False)
 
         # Write experiment code that prints some metrics then sleeps
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text(
             "import time, sys\n"
@@ -1937,7 +1939,7 @@ class TestPartialTimeoutStatus:
             encoding="utf-8",
         )
 
-        stage_dir = run_dir / "stage-12"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         rc_executor._execute_experiment_run(
@@ -1962,7 +1964,7 @@ class TestTimeoutAwareRefine:
 
     def _prepare_timed_out_run(self, run_dir: Path) -> None:
         """Create a prior run that timed out with no metrics."""
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -1976,7 +1978,7 @@ class TestTimeoutAwareRefine:
             encoding="utf-8",
         )
         # Write experiment code
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text(
             "print('best_loss: 0.1')\n",
@@ -1987,7 +1989,7 @@ class TestTimeoutAwareRefine:
         self, tmp_path: Path, run_dir: Path, adapters: AdapterBundle
     ) -> None:
         self._prepare_timed_out_run(run_dir)
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -2015,7 +2017,7 @@ class TestTimeoutAwareRefine:
                 "primary_model": "fake-model",
                 "fallback_models": [],
             },
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 120,
@@ -2053,14 +2055,14 @@ class TestDataIntegrityBlock:
         # Write prior artifacts with NO metrics
         _write_prior_artifact(run_dir, 16, "outline.md", "# Outline\n## Abstract\n")
         # No experiment_summary.json, no run files with metrics
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({"run_id": "run-1", "status": "failed", "metrics": {}, "timed_out": True}),
             encoding="utf-8",
         )
 
-        stage_dir = run_dir / "stage-17"
+        stage_dir = run_dir / "stage-10"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         llm = FakeLLMClient("should not be called")
@@ -2079,7 +2081,7 @@ class TestDataIntegrityBlock:
     ) -> None:
         _write_prior_artifact(run_dir, 16, "outline.md", "# Outline\n## Abstract\n")
         # Write experiment data with real metrics
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -2091,7 +2093,7 @@ class TestDataIntegrityBlock:
             encoding="utf-8",
         )
 
-        stage_dir = run_dir / "stage-17"
+        stage_dir = run_dir / "stage-10"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         llm = FakeLLMClient("# Paper Title\n## Abstract\nSome abstract text.")
@@ -2133,7 +2135,7 @@ class TestTitleGuidelines:
         self, tmp_path: Path, run_dir: Path, rc_config: RCConfig, adapters: AdapterBundle
     ) -> None:
         _write_prior_artifact(run_dir, 16, "outline.md", "# Outline\n")
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({"run_id": "run-1", "status": "completed",
@@ -2141,7 +2143,7 @@ class TestTitleGuidelines:
             encoding="utf-8",
         )
 
-        stage_dir = run_dir / "stage-17"
+        stage_dir = run_dir / "stage-10"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         llm = FakeLLMClient("# Paper Title\n## Abstract\nText.")
@@ -2224,18 +2226,18 @@ class TestRefineTimeoutAndIterationCap:
     ) -> None:
         """R5-2: Setting max_iterations=7 should actually allow 7 iterations."""
         # Write prior run artifacts
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({"run_id": "run-1", "status": "completed",
                         "metrics": {"best_loss": 0.5}}),
             encoding="utf-8",
         )
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("print('best_loss: 0.5')\n", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -2250,7 +2252,7 @@ class TestRefineTimeoutAndIterationCap:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 300,
@@ -2466,7 +2468,7 @@ class TestStdoutTruncation:
         self, tmp_path: Path, run_dir: Path, adapters: AdapterBundle
     ) -> None:
         # Create a run with very long stdout
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         long_stdout = "\n".join(f"step {i}: loss={0.5 - i * 0.001:.6f}" for i in range(200))
         (runs_dir / "run-1.json").write_text(
@@ -2479,11 +2481,11 @@ class TestStdoutTruncation:
             encoding="utf-8",
         )
 
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("print('best_loss: 0.3')\n", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -2498,7 +2500,7 @@ class TestStdoutTruncation:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -2533,7 +2535,7 @@ class TestNoImproveStreakFix:
         self, tmp_path: Path, run_dir: Path, adapters: AdapterBundle
     ) -> None:
         """When metrics are empty (None), the streak should NOT increment."""
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -2544,11 +2546,11 @@ class TestNoImproveStreakFix:
             }),
             encoding="utf-8",
         )
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("print('hello')\n", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -2563,7 +2565,7 @@ class TestNoImproveStreakFix:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -2598,17 +2600,17 @@ class TestStdoutFailureDetection:
         # Create necessary structure
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        (run_dir / "stage-10").mkdir()
-        exp_dir = run_dir / "stage-10" / "experiment"
+        (run_dir / "stage-07").mkdir()
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir()
         # Simple code that prints FAIL but exits 0
         (exp_dir / "main.py").write_text(
             "print('FAIL: NaN/divergence detected')\n", encoding="utf-8"
         )
-        (run_dir / "stage-11").mkdir()
-        (run_dir / "stage-11" / "schedule.json").write_text("{}", encoding="utf-8")
+        (run_dir / "stage-07").mkdir()
+        (run_dir / "stage-07" / "schedule.json").write_text("{}", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-12"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir()
 
         data = {
@@ -2623,7 +2625,7 @@ class TestStdoutFailureDetection:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -2658,16 +2660,16 @@ class TestStdoutFailureDetection:
 
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        (run_dir / "stage-10").mkdir()
-        exp_dir = run_dir / "stage-10" / "experiment"
+        (run_dir / "stage-07").mkdir()
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir()
         (exp_dir / "main.py").write_text(
             "print('primary_metric: 0.95')\n", encoding="utf-8"
         )
-        (run_dir / "stage-11").mkdir()
-        (run_dir / "stage-11" / "schedule.json").write_text("{}", encoding="utf-8")
+        (run_dir / "stage-07").mkdir()
+        (run_dir / "stage-07" / "schedule.json").write_text("{}", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-12"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir()
 
         data = {
@@ -2682,7 +2684,7 @@ class TestStdoutFailureDetection:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -2732,15 +2734,15 @@ class TestConsecutiveEmptyMetrics:
         from scholarclaw_engine.pipeline.runner import _consecutive_empty_metrics
 
         run_dir = tmp_path / "run"
-        # Current cycle (stage-14)
-        s14 = run_dir / "stage-14"
+        # Current cycle (stage-09 ANALYSIS_DECISION)
+        s14 = run_dir / "stage-09"
         s14.mkdir(parents=True)
         (s14 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {}},
         }))
-        # Previous cycle (stage-14_v1)
-        s14v1 = run_dir / "stage-14_v1"
+        # Previous cycle (stage-09_v1)
+        s14v1 = run_dir / "stage-09_v1"
         s14v1.mkdir(parents=True)
         (s14v1 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
@@ -2754,13 +2756,13 @@ class TestConsecutiveEmptyMetrics:
         from scholarclaw_engine.pipeline.runner import _consecutive_empty_metrics
 
         run_dir = tmp_path / "run"
-        s14 = run_dir / "stage-14"
+        s14 = run_dir / "stage-09"
         s14.mkdir(parents=True)
         (s14 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {"loss": 0.5}},
         }))
-        s14v1 = run_dir / "stage-14_v1"
+        s14v1 = run_dir / "stage-09_v1"
         s14v1.mkdir(parents=True)
         (s14v1 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
@@ -2774,14 +2776,14 @@ class TestConsecutiveEmptyMetrics:
         from scholarclaw_engine.pipeline.runner import _consecutive_empty_metrics
 
         run_dir = tmp_path / "run"
-        s14 = run_dir / "stage-14"
+        s14 = run_dir / "stage-09"
         s14.mkdir(parents=True)
         (s14 / "experiment_summary.json").write_text(json.dumps({
             "metrics_summary": {},
             "best_run": {"metrics": {}},
         }))
 
-        # No stage-14_v1 exists
+        # No stage-09_v1 exists
         assert _consecutive_empty_metrics(run_dir, pivot_count=1) is False
 
 
@@ -2863,7 +2865,7 @@ class TestConditionCoverageDetection:
         self, tmp_path: Path, run_dir: Path, adapters: AdapterBundle
     ) -> None:
         """If stdout has no 'condition=' labels, a coverage hint should be injected."""
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -2875,18 +2877,18 @@ class TestConditionCoverageDetection:
             encoding="utf-8",
         )
 
-        exp_plan_dir = run_dir / "stage-09"
+        exp_plan_dir = run_dir / "stage-06"
         exp_plan_dir.mkdir(parents=True, exist_ok=True)
         (exp_plan_dir / "exp_plan.yaml").write_text(
             "conditions:\n  - echo_chamber\n  - bridge_building\n  - random\n",
             encoding="utf-8",
         )
 
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("print('primary_metric: 0.5')\n", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -2901,7 +2903,7 @@ class TestConditionCoverageDetection:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -2925,7 +2927,7 @@ class TestConditionCoverageDetection:
         self, tmp_path: Path, run_dir: Path, adapters: AdapterBundle
     ) -> None:
         """If stdout already has 'condition=' labels, no hint should be injected."""
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -2937,18 +2939,18 @@ class TestConditionCoverageDetection:
             encoding="utf-8",
         )
 
-        exp_plan_dir = run_dir / "stage-09"
+        exp_plan_dir = run_dir / "stage-06"
         exp_plan_dir.mkdir(parents=True, exist_ok=True)
         (exp_plan_dir / "exp_plan.yaml").write_text(
             "conditions:\n  - echo\n  - bridge\n",
             encoding="utf-8",
         )
 
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("print('primary_metric: 0.5')\n", encoding="utf-8")
 
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -2963,7 +2965,7 @@ class TestConditionCoverageDetection:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,
@@ -3013,7 +3015,7 @@ class TestRefineFilePreservation:
         self, tmp_path: Path, run_dir: Path, adapters: AdapterBundle
     ) -> None:
         """When LLM returns only main.py, other project files should be preserved."""
-        runs_dir = run_dir / "stage-12" / "runs"
+        runs_dir = run_dir / "stage-08" / "runs"
         runs_dir.mkdir(parents=True, exist_ok=True)
         (runs_dir / "run-1.json").write_text(
             json.dumps({
@@ -3026,13 +3028,13 @@ class TestRefineFilePreservation:
         )
 
         # Multi-file experiment project
-        exp_dir = run_dir / "stage-11" / "experiment"
+        exp_dir = run_dir / "stage-07" / "experiment"
         exp_dir.mkdir(parents=True, exist_ok=True)
         (exp_dir / "main.py").write_text("from helpers import foo\nprint('primary_metric: 0.5')\n")
         (exp_dir / "helpers.py").write_text("def foo(): return 42\n")
         (exp_dir / "utils.py").write_text("def bar(): return 99\n")
 
-        stage_dir = run_dir / "stage-13"
+        stage_dir = run_dir / "stage-08"
         stage_dir.mkdir(parents=True, exist_ok=True)
 
         data = {
@@ -3047,7 +3049,7 @@ class TestRefineFilePreservation:
             "llm": {"provider": "openai-compatible", "base_url": "http://localhost:1234/v1",
                     "api_key_env": "RC_TEST_KEY", "api_key": "inline-test-key",
                     "primary_model": "fake-model", "fallback_models": []},
-            "security": {"hitl_required_stages": [5, 9, 20]},
+            "security": {"hitl_required_stages": [3, 6, 11]},
             "experiment": {
                 "mode": "sandbox",
                 "time_budget_sec": 30,

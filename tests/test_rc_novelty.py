@@ -370,7 +370,7 @@ class TestHypothesisGenNoveltyIntegration:
     """Test that _execute_hypothesis_gen integrates novelty check correctly."""
 
     def test_novelty_report_written_when_available(self, tmp_path: Path) -> None:
-        """Hypothesis gen should write novelty_report.json when check succeeds."""
+        """Hypothesis synthesis should write novelty_report.json when check succeeds."""
         from scholarclaw_engine.pipeline.executor import _execute_hypothesis_gen
         from scholarclaw_engine.adapters import AdapterBundle
         from scholarclaw_engine.config import RCConfig
@@ -378,13 +378,13 @@ class TestHypothesisGenNoveltyIntegration:
         # Set up minimal run directory
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-08"
+        stage_dir = run_dir / "stage-05"
         stage_dir.mkdir()
 
-        # Create synthesis artifact from prior stage
-        stage_07 = run_dir / "stage-07"
-        stage_07.mkdir()
-        (stage_07 / "synthesis.md").write_text("## Synthesis\nSome synthesis content.")
+        # Create synthesis artifact from prior stage (knowledge_extract)
+        stage_04 = run_dir / "stage-04"
+        stage_04.mkdir()
+        (stage_04 / "synthesis.md").write_text("## Synthesis\nSome synthesis content.")
 
         data = {
             "project": {"name": "novelty-test", "mode": "docs-first"},
@@ -420,19 +420,19 @@ class TestHypothesisGenNoveltyIntegration:
         assert "novelty_report.json" in result.artifacts
 
     def test_novelty_failure_does_not_block(self, tmp_path: Path) -> None:
-        """If novelty check crashes, hypothesis gen still succeeds."""
+        """If novelty check crashes, hypothesis synthesis still succeeds."""
         from scholarclaw_engine.pipeline.executor import _execute_hypothesis_gen
         from scholarclaw_engine.adapters import AdapterBundle
         from scholarclaw_engine.config import RCConfig
 
         run_dir = tmp_path / "run"
         run_dir.mkdir()
-        stage_dir = run_dir / "stage-08"
+        stage_dir = run_dir / "stage-05"
         stage_dir.mkdir()
 
-        stage_07 = run_dir / "stage-07"
-        stage_07.mkdir()
-        (stage_07 / "synthesis.md").write_text("## Synthesis\nContent.")
+        stage_04 = run_dir / "stage-04"
+        stage_04.mkdir()
+        (stage_04 / "synthesis.md").write_text("## Synthesis\nContent.")
 
         data = {
             "project": {"name": "novelty-test", "mode": "docs-first"},

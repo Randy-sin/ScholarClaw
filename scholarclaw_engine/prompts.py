@@ -1,6 +1,6 @@
 """Prompt externalization for the ScholarClaw pipeline.
 
-All 23 stage prompts are defined here as defaults and can be overridden
+All stage prompts are defined here as defaults and can be overridden
 via a user-provided YAML file.  Users customize prompts without touching
 Python source code.
 

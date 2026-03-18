@@ -23,8 +23,8 @@ class TestReport:
             json.dumps(
                 {
                     "run_id": "rc-test-123",
-                    "stages_executed": 23,
-                    "stages_done": 23,
+                    "stages_executed": 12,
+                    "stages_done": 12,
                     "stages_blocked": 0,
                     "stages_failed": 0,
                     "final_status": "done",
@@ -50,7 +50,7 @@ class TestReport:
                 }
             )
         )
-        draft_dir = tmp_path / "stage-17"
+        draft_dir = tmp_path / "stage-10"
         draft_dir.mkdir()
         (draft_dir / "paper_draft.md").write_text(
             "This is a paper with some words in it."
@@ -72,7 +72,7 @@ class TestReport:
                 }
             )
         )
-        verify_dir = tmp_path / "stage-23"
+        verify_dir = tmp_path / "stage-12"
         verify_dir.mkdir()
         (verify_dir / "verification_report.json").write_text(
             json.dumps(
@@ -120,7 +120,7 @@ class TestReport:
                 }
             )
         )
-        exp_dir = tmp_path / "stage-12"
+        exp_dir = tmp_path / "stage-08"
         exp_dir.mkdir()
         (exp_dir / "experiment_results.json").write_text(
             json.dumps(

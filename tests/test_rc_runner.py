@@ -83,7 +83,7 @@ def test_execute_pipeline_runs_stages_in_sequence(
         adapters=adapters,
     )
     assert seen == list(STAGE_SEQUENCE)
-    assert len(results) == 23
+    assert len(results) == 12
     assert all(r.status == StageStatus.DONE for r in results)
 
 
@@ -93,7 +93,7 @@ def test_execute_pipeline_stops_on_failed_stage(
     rc_config: RCConfig,
     adapters: AdapterBundle,
 ) -> None:
-    fail_stage = Stage.SEARCH_STRATEGY
+    fail_stage = Stage.SEARCH_COLLECT
 
     def mock_execute_stage(stage: Stage, **kwargs) -> StageResult:
         _ = kwargs
@@ -162,7 +162,7 @@ def test_execute_pipeline_continues_after_gate_when_stop_on_gate_disabled(
         adapters=adapters,
         stop_on_gate=False,
     )
-    assert len(results) == 23
+    assert len(results) == 12
     assert any(item.status == StageStatus.BLOCKED_APPROVAL for item in results)
 
 
@@ -197,7 +197,7 @@ def test_pipeline_summary_has_expected_fields_and_values(
         _ = kwargs
         if stage == Stage.LITERATURE_SCREEN:
             return _blocked(stage)
-        if stage == Stage.HYPOTHESIS_GEN:
+        if stage == Stage.HYPOTHESIS_SYNTHESIS:
             return _failed(stage)
         return _done(stage)
 
@@ -220,7 +220,7 @@ def test_pipeline_summary_has_expected_fields_and_values(
     assert summary["stages_blocked"] == 1
     assert summary["stages_failed"] == 1
     assert summary["from_stage"] == 1
-    assert summary["final_stage"] == int(Stage.HYPOTHESIS_GEN)
+    assert summary["final_stage"] == int(Stage.HYPOTHESIS_SYNTHESIS)
     assert summary["final_status"] == "failed"
     assert "generated" in summary
 
@@ -244,10 +244,10 @@ def test_execute_pipeline_from_stage_skips_earlier_stages(
         run_id="run-from-stage",
         config=rc_config,
         adapters=adapters,
-        from_stage=Stage.PAPER_OUTLINE,
+        from_stage=Stage.PAPER_WRITE,
     )
-    assert seen[0] == Stage.PAPER_OUTLINE
-    assert len(seen) == len(STAGE_SEQUENCE) - (int(Stage.PAPER_OUTLINE) - 1)
+    assert seen[0] == Stage.PAPER_WRITE
+    assert len(seen) == len(STAGE_SEQUENCE) - (int(Stage.PAPER_WRITE) - 1)
     assert len(results) == len(seen)
 
 
@@ -291,9 +291,9 @@ def test_execute_pipeline_writes_kb_entries_when_kb_root_provided(
         adapters=adapters,
         kb_root=kb_root,
     )
-    assert len(results) == 23
-    assert len(calls) == 23
-    assert calls[0] == (1, "topic_init", "run-kb")
+    assert len(results) == 12
+    assert len(calls) == 12
+    assert calls[0] == (1, "research_scoping", "run-kb")
 
 
 def test_execute_pipeline_passes_auto_approve_flag_to_execute_stage(
@@ -323,24 +323,24 @@ def test_execute_pipeline_passes_auto_approve_flag_to_execute_stage(
 @pytest.mark.parametrize(
     ("stage", "started", "expected"),
     [
-        (Stage.TOPIC_INIT, False, True),
-        (Stage.PROBLEM_DECOMPOSE, False, False),
-        (Stage.PAPER_DRAFT, True, True),
+        (Stage.RESEARCH_SCOPING, False, True),
+        (Stage.SEARCH_COLLECT, False, False),
+        (Stage.PAPER_WRITE, True, True),
     ],
 )
 def test_should_start_logic(stage: Stage, started: bool, expected: bool) -> None:
-    assert rc_runner._should_start(stage, Stage.TOPIC_INIT, started) is expected
+    assert rc_runner._should_start(stage, Stage.RESEARCH_SCOPING, started) is expected
 
 
 @pytest.mark.parametrize(
     ("results", "expected_status", "expected_final_stage"),
     [
-        ([], "no_stages", int(Stage.TOPIC_INIT)),
-        ([_done(Stage.TOPIC_INIT)], "done", int(Stage.TOPIC_INIT)),
+        ([], "no_stages", int(Stage.RESEARCH_SCOPING)),
+        ([_done(Stage.RESEARCH_SCOPING)], "done", int(Stage.RESEARCH_SCOPING)),
         (
-            [_done(Stage.TOPIC_INIT), _failed(Stage.PROBLEM_DECOMPOSE)],
+            [_done(Stage.RESEARCH_SCOPING), _failed(Stage.SEARCH_COLLECT)],
             "failed",
-            int(Stage.PROBLEM_DECOMPOSE),
+            int(Stage.SEARCH_COLLECT),
         ),
     ],
 )
@@ -350,7 +350,7 @@ def test_build_pipeline_summary_core_fields(
     summary = rc_runner._build_pipeline_summary(
         run_id="run-core",
         results=results,
-        from_stage=Stage.TOPIC_INIT,
+        from_stage=Stage.RESEARCH_SCOPING,
     )
     assert summary["run_id"] == "run-core"
     assert summary["final_status"] == expected_status
@@ -366,15 +366,17 @@ def test_pipeline_prints_stage_progress(
 ) -> None:
     mock_results = [
         StageResult(
-            stage=Stage.TOPIC_INIT, status=StageStatus.DONE, artifacts=("topic.json",)
+            stage=Stage.RESEARCH_SCOPING,
+            status=StageStatus.DONE,
+            artifacts=("topic.json",),
         ),
         StageResult(
-            stage=Stage.PROBLEM_DECOMPOSE,
+            stage=Stage.SEARCH_COLLECT,
             status=StageStatus.DONE,
             artifacts=("tree.json",),
         ),
         StageResult(
-            stage=Stage.SEARCH_STRATEGY,
+            stage=Stage.LITERATURE_SCREEN,
             status=StageStatus.FAILED,
             artifacts=(),
             error="LLM timeout",
@@ -401,9 +403,9 @@ def test_pipeline_prints_stage_progress(
     )
 
     captured = capsys.readouterr()
-    assert "TOPIC_INIT — running..." in captured.out
-    assert "TOPIC_INIT — done" in captured.out
-    assert "SEARCH_STRATEGY — FAILED" in captured.out
+    assert "RESEARCH_SCOPING — running..." in captured.out
+    assert "RESEARCH_SCOPING — done" in captured.out
+    assert "LITERATURE_SCREEN — FAILED" in captured.out
     assert "LLM timeout" in captured.out
 
 
@@ -415,12 +417,12 @@ def test_pipeline_prints_elapsed_time(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     mock_result = StageResult(
-        stage=Stage.TOPIC_INIT,
+        stage=Stage.RESEARCH_SCOPING,
         status=StageStatus.DONE,
         artifacts=("topic.json",),
     )
     mock_fail = StageResult(
-        stage=Stage.PROBLEM_DECOMPOSE,
+        stage=Stage.SEARCH_COLLECT,
         status=StageStatus.FAILED,
         artifacts=(),
         error="test",
@@ -475,7 +477,7 @@ def test_pivot_decision_triggers_rollback_to_hypothesis_gen(
         _ = kwargs
         seen.append(stage)
         nonlocal pivot_count
-        if stage == Stage.RESEARCH_DECISION and pivot_count == 0:
+        if stage == Stage.ANALYSIS_DECISION and pivot_count == 0:
             pivot_count += 1
             return _pivot_result(stage)
         return _done(stage)
@@ -487,8 +489,8 @@ def test_pivot_decision_triggers_rollback_to_hypothesis_gen(
         config=rc_config,
         adapters=adapters,
     )
-    # Should have seen HYPOTHESIS_GEN at least twice (original + rollback)
-    hyp_gen_count = sum(1 for s in seen if s == Stage.HYPOTHESIS_GEN)
+    # Should have seen HYPOTHESIS_SYNTHESIS at least twice (original + rollback)
+    hyp_gen_count = sum(1 for s in seen if s == Stage.HYPOTHESIS_SYNTHESIS)
     assert hyp_gen_count >= 2
     # Decision history should be recorded
     history_path = run_dir / "decision_history.json"
@@ -511,7 +513,7 @@ def test_refine_decision_triggers_rollback_to_iterative_refine(
         _ = kwargs
         seen.append(stage)
         nonlocal refine_count
-        if stage == Stage.RESEARCH_DECISION and refine_count == 0:
+        if stage == Stage.ANALYSIS_DECISION and refine_count == 0:
             refine_count += 1
             return _refine_result(stage)
         return _done(stage)
@@ -523,8 +525,8 @@ def test_refine_decision_triggers_rollback_to_iterative_refine(
         config=rc_config,
         adapters=adapters,
     )
-    # Should have seen ITERATIVE_REFINE at least twice
-    refine_stage_count = sum(1 for s in seen if s == Stage.ITERATIVE_REFINE)
+    # Should have seen EXPERIMENT_EXECUTE at least twice
+    refine_stage_count = sum(1 for s in seen if s == Stage.EXPERIMENT_EXECUTE)
     assert refine_stage_count >= 2
 
 
@@ -540,7 +542,7 @@ def test_max_pivot_count_prevents_infinite_loop(
         _ = kwargs
         seen.append(stage)
         # Always PIVOT — should be limited by MAX_DECISION_PIVOTS
-        if stage == Stage.RESEARCH_DECISION:
+        if stage == Stage.ANALYSIS_DECISION:
             return _pivot_result(stage)
         return _done(stage)
 
@@ -551,9 +553,9 @@ def test_max_pivot_count_prevents_infinite_loop(
         config=rc_config,
         adapters=adapters,
     )
-    # RESEARCH_DECISION should appear at most MAX_DECISION_PIVOTS + 1 times
+    # ANALYSIS_DECISION should appear at most MAX_DECISION_PIVOTS + 1 times
     from scholarclaw_engine.pipeline.stages import MAX_DECISION_PIVOTS
-    decision_count = sum(1 for s in seen if s == Stage.RESEARCH_DECISION)
+    decision_count = sum(1 for s in seen if s == Stage.ANALYSIS_DECISION)
     assert decision_count <= MAX_DECISION_PIVOTS + 1
 
 
@@ -577,8 +579,8 @@ def test_proceed_decision_does_not_trigger_rollback(
         config=rc_config,
         adapters=adapters,
     )
-    # Should be exactly 23 stages, no rollback
-    assert len(seen) == 23
+    # Should be exactly 12 stages, no rollback
+    assert len(seen) == 12
     assert not (run_dir / "decision_history.json").exists()
 
 
@@ -587,8 +589,8 @@ def test_read_pivot_count_returns_zero_for_no_history(run_dir: Path) -> None:
 
 
 def test_record_decision_history_appends(run_dir: Path) -> None:
-    rc_runner._record_decision_history(run_dir, "pivot", Stage.HYPOTHESIS_GEN, 1)
-    rc_runner._record_decision_history(run_dir, "refine", Stage.ITERATIVE_REFINE, 2)
+    rc_runner._record_decision_history(run_dir, "pivot", Stage.HYPOTHESIS_SYNTHESIS, 1)
+    rc_runner._record_decision_history(run_dir, "refine", Stage.EXPERIMENT_EXECUTE, 2)
     history = json.loads((run_dir / "decision_history.json").read_text())
     assert len(history) == 2
     assert history[0]["decision"] == "pivot"
@@ -599,23 +601,20 @@ def test_record_decision_history_appends(run_dir: Path) -> None:
 
 
 def _setup_stage_artifacts(run_dir: Path) -> None:
-    """Create typical stage-22 and stage-23 output files for testing."""
-    s22 = run_dir / "stage-22"
-    s22.mkdir(parents=True, exist_ok=True)
-    (s22 / "paper_final.md").write_text("# My Paper\nContent here.", encoding="utf-8")
-    (s22 / "paper.tex").write_text("\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}", encoding="utf-8")
-    (s22 / "references.bib").write_text("@article{smith2024,\n  title={Test}\n}", encoding="utf-8")
-    code_dir = s22 / "code"
+    """Create typical stage-12 (EXPORT_VERIFY) output files for testing."""
+    s12 = run_dir / "stage-12"
+    s12.mkdir(parents=True, exist_ok=True)
+    (s12 / "paper_final.md").write_text("# My Paper\nContent here.", encoding="utf-8")
+    (s12 / "paper.tex").write_text("\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}", encoding="utf-8")
+    (s12 / "references.bib").write_text("@article{smith2024,\n  title={Test}\n}", encoding="utf-8")
+    code_dir = s12 / "code"
     code_dir.mkdir()
     (code_dir / "main.py").write_text("print('hello')", encoding="utf-8")
     (code_dir / "requirements.txt").write_text("numpy\n", encoding="utf-8")
     (code_dir / "README.md").write_text("# Code\n", encoding="utf-8")
-
-    s23 = run_dir / "stage-23"
-    s23.mkdir(parents=True, exist_ok=True)
-    (s23 / "paper_final_verified.md").write_text("# My Paper (verified)\nContent.", encoding="utf-8")
-    (s23 / "references_verified.bib").write_text("@article{smith2024,\n  title={Test}\n}", encoding="utf-8")
-    (s23 / "verification_report.json").write_text(
+    (s12 / "paper_final_verified.md").write_text("# My Paper (verified)\nContent.", encoding="utf-8")
+    (s12 / "references_verified.bib").write_text("@article{smith2024,\n  title={Test}\n}", encoding="utf-8")
+    (s12 / "verification_report.json").write_text(
         json.dumps({"summary": {"total": 5, "verified": 4}}), encoding="utf-8"
     )
 
@@ -644,21 +643,21 @@ def test_package_deliverables_prefers_verified_versions(
     _setup_stage_artifacts(run_dir)
     rc_runner._package_deliverables(run_dir, "run-verified", rc_config)
     dest = run_dir / "deliverables"
-    # Should contain verified content (from stage 23), not base (from stage 22)
+    # Should contain verified content (from stage 12), not base
     paper = (dest / "paper_final.md").read_text(encoding="utf-8")
     assert "verified" in paper
     bib = (dest / "references.bib").read_text(encoding="utf-8")
     assert "smith2024" in bib
 
 
-def test_package_deliverables_falls_back_to_stage22(
+def test_package_deliverables_falls_back_to_base_version(
     run_dir: Path, rc_config: RCConfig
 ) -> None:
-    """When stage 23 outputs are missing, falls back to stage 22 versions."""
-    s22 = run_dir / "stage-22"
-    s22.mkdir(parents=True, exist_ok=True)
-    (s22 / "paper_final.md").write_text("# Base Paper", encoding="utf-8")
-    (s22 / "references.bib").write_text("@article{a,title={A}}", encoding="utf-8")
+    """When verified outputs are missing in stage 12, falls back to base versions."""
+    s12 = run_dir / "stage-12"
+    s12.mkdir(parents=True, exist_ok=True)
+    (s12 / "paper_final.md").write_text("# Base Paper", encoding="utf-8")
+    (s12 / "references.bib").write_text("@article{a,title={A}}", encoding="utf-8")
 
     dest = rc_runner._package_deliverables(run_dir, "run-fallback", rc_config)
     assert dest is not None
@@ -710,17 +709,17 @@ def test_package_deliverables_includes_style_files(
 
 def test_write_checkpoint_uses_atomic_rename(run_dir: Path) -> None:
     """Checkpoint must be written via temp file + rename, not direct write"""
-    rc_runner._write_checkpoint(run_dir, Stage.TOPIC_INIT, "run-atomic")
+    rc_runner._write_checkpoint(run_dir, Stage.RESEARCH_SCOPING, "run-atomic")
     cp = run_dir / "checkpoint.json"
     assert cp.exists()
     data = json.loads(cp.read_text(encoding="utf-8"))
-    assert data["last_completed_stage"] == int(Stage.TOPIC_INIT)
+    assert data["last_completed_stage"] == int(Stage.RESEARCH_SCOPING)
     assert data["run_id"] == "run-atomic"
 
 
 def test_write_checkpoint_leaves_no_temp_files(run_dir: Path) -> None:
     """Atomic write must clean up temp files on success"""
-    rc_runner._write_checkpoint(run_dir, Stage.TOPIC_INIT, "run-clean")
+    rc_runner._write_checkpoint(run_dir, Stage.RESEARCH_SCOPING, "run-clean")
     temps = list(run_dir.glob("*.tmp"))
     assert temps == [], f"Leftover temp files: {temps}"
 
@@ -731,7 +730,7 @@ def test_write_checkpoint_preserves_old_on_write_failure(
     """If the temp-file write fails, the existing checkpoint must survive"""
     import builtins
 
-    rc_runner._write_checkpoint(run_dir, Stage.TOPIC_INIT, "run-ok")
+    rc_runner._write_checkpoint(run_dir, Stage.RESEARCH_SCOPING, "run-ok")
 
     original_open = builtins.open
 
@@ -743,22 +742,22 @@ def test_write_checkpoint_preserves_old_on_write_failure(
 
     monkeypatch.setattr(builtins, "open", _exploding_open)
     with pytest.raises(OSError):
-        rc_runner._write_checkpoint(run_dir, Stage.PROBLEM_DECOMPOSE, "run-ok")
+        rc_runner._write_checkpoint(run_dir, Stage.SEARCH_COLLECT, "run-ok")
 
     # Original checkpoint must be intact
     data = json.loads((run_dir / "checkpoint.json").read_text(encoding="utf-8"))
-    assert data["last_completed_stage"] == int(Stage.TOPIC_INIT)
+    assert data["last_completed_stage"] == int(Stage.RESEARCH_SCOPING)
     # Temp file must be cleaned up
     assert list(run_dir.glob("checkpoint_*.tmp")) == []
 
 
 def test_write_checkpoint_overwrites_previous(run_dir: Path) -> None:
     """A second checkpoint call must fully replace the first"""
-    rc_runner._write_checkpoint(run_dir, Stage.TOPIC_INIT, "run-1")
-    rc_runner._write_checkpoint(run_dir, Stage.PROBLEM_DECOMPOSE, "run-1")
+    rc_runner._write_checkpoint(run_dir, Stage.RESEARCH_SCOPING, "run-1")
+    rc_runner._write_checkpoint(run_dir, Stage.SEARCH_COLLECT, "run-1")
     data = json.loads((run_dir / "checkpoint.json").read_text(encoding="utf-8"))
-    assert data["last_completed_stage"] == int(Stage.PROBLEM_DECOMPOSE)
-    assert data["last_completed_name"] == Stage.PROBLEM_DECOMPOSE.name
+    assert data["last_completed_stage"] == int(Stage.SEARCH_COLLECT)
+    assert data["last_completed_name"] == Stage.SEARCH_COLLECT.name
 
 
 def test_package_deliverables_called_after_pipeline(

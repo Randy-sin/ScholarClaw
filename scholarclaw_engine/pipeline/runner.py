@@ -131,7 +131,7 @@ def read_checkpoint(run_dir: Path) -> Stage | None:
 
 
 def resume_from_checkpoint(
-    run_dir: Path, default_stage: Stage = Stage.TOPIC_INIT
+    run_dir: Path, default_stage: Stage = Stage.RESEARCH_SCOPING
 ) -> Stage:
     """Resolve the stage to resume from using checkpoint metadata."""
     next_stage = read_checkpoint(run_dir)
@@ -150,7 +150,7 @@ def _collect_content_metrics(run_dir: Path | None) -> dict[str, object]:
     if run_dir is None:
         return metrics
 
-    draft_path = run_dir / "stage-17" / "paper_draft.md"
+    draft_path = run_dir / "stage-10" / "paper_draft.md"
     if draft_path.exists():
         try:
             quality_module = importlib.import_module("scholarclaw_engine.quality")
@@ -167,7 +167,7 @@ def _collect_content_metrics(run_dir: Path | None) -> dict[str, object]:
         ):
             pass
 
-    verify_path = run_dir / "stage-23" / "verification_report.json"
+    verify_path = run_dir / "stage-12" / "verification_report.json"
     if verify_path.exists():
         try:
             vdata = json.loads(verify_path.read_text(encoding="utf-8"))
@@ -197,7 +197,7 @@ def execute_pipeline(
     run_id: str,
     config: RCConfig,
     adapters: AdapterBundle,
-    from_stage: Stage = Stage.TOPIC_INIT,
+    from_stage: Stage = Stage.RESEARCH_SCOPING,
     auto_approve_gates: bool = False,
     stop_on_gate: bool = False,
     skip_noncritical: bool = False,
@@ -262,7 +262,7 @@ def execute_pipeline(
 
         # --- PIVOT/REFINE decision handling ---
         if (
-            stage == Stage.RESEARCH_DECISION
+            stage == Stage.ANALYSIS_DECISION
             and result.status == StageStatus.DONE
             and result.decision in DECISION_ROLLBACK
         ):
@@ -408,11 +408,12 @@ def _package_deliverables(
     packaged: list[str] = []
 
     # --- 1. Final paper (Markdown) ---
-    # Prefer verified version (stage 23) over base version (stage 22)
+    # Prefer verified version over base version (both in stage 12)
+    s12 = run_dir / "stage-12"
     paper_md = None
     for candidate in [
-        run_dir / "stage-23" / "paper_final_verified.md",
-        run_dir / "stage-22" / "paper_final.md",
+        s12 / "paper_final_verified.md",
+        s12 / "paper_final.md",
     ]:
         if candidate.exists() and candidate.stat().st_size > 0:
             paper_md = candidate
@@ -422,11 +423,11 @@ def _package_deliverables(
         packaged.append("paper_final.md")
 
     # --- 2. LaTeX paper ---
-    # IMP-13: If Stage 23 produced verified markdown, regenerate paper.tex
-    # from it so that hallucinated citations removed in Stage 23 are also
-    # absent from the LaTeX.  Fall back to the Stage 22 .tex otherwise.
+    # IMP-13: If stage 12 produced verified markdown, regenerate paper.tex
+    # from it so that hallucinated citations removed are also absent from
+    # the LaTeX.  Fall back to the base .tex otherwise.
     tex_regenerated = False
-    verified_md = run_dir / "stage-23" / "paper_final_verified.md"
+    verified_md = s12 / "paper_final_verified.md"
     if (
         paper_md is not None
         and paper_md == verified_md
@@ -465,7 +466,7 @@ def _package_deliverables(
             else:
                 logger.warning(
                     "Regenerated paper.tex has poor structure "
-                    "(abstract=%s, sections=%d) — using Stage 22 version",
+                    "(abstract=%s, sections=%d) — using base version",
                     bool(_has_abstract),
                     _section_count,
                 )
@@ -473,17 +474,17 @@ def _package_deliverables(
             logger.debug("paper.tex regeneration from verified md failed")
 
     if not tex_regenerated:
-        tex_src = run_dir / "stage-22" / "paper.tex"
+        tex_src = s12 / "paper.tex"
         if tex_src.exists() and tex_src.stat().st_size > 0:
             shutil.copy2(tex_src, dest / "paper.tex")
             packaged.append("paper.tex")
 
     # --- 3. References (BibTeX) ---
-    # Prefer verified bib (stage 23) over base bib (stage 22)
+    # Prefer verified bib over base bib (both in stage 12)
     bib_src = None
     for candidate in [
-        run_dir / "stage-23" / "references_verified.bib",
-        run_dir / "stage-22" / "references.bib",
+        s12 / "references_verified.bib",
+        s12 / "references.bib",
     ]:
         if candidate.exists() and candidate.stat().st_size > 0:
             bib_src = candidate
@@ -493,7 +494,7 @@ def _package_deliverables(
         packaged.append("references.bib")
 
     # --- 4. Experiment code package ---
-    code_src = run_dir / "stage-22" / "code"
+    code_src = s12 / "code"
     if code_src.is_dir():
         code_dest = dest / "code"
         if code_dest.exists():
@@ -502,13 +503,13 @@ def _package_deliverables(
         packaged.append("code/")
 
     # --- 5. Verification report (optional) ---
-    verify_src = run_dir / "stage-23" / "verification_report.json"
+    verify_src = s12 / "verification_report.json"
     if verify_src.exists() and verify_src.stat().st_size > 0:
         shutil.copy2(verify_src, dest / "verification_report.json")
         packaged.append("verification_report.json")
 
     # --- 6. Charts (optional) ---
-    charts_src = run_dir / "stage-22" / "charts"
+    charts_src = s12 / "charts"
     if charts_src.is_dir() and any(charts_src.iterdir()):
         charts_dest = dest / "charts"
         if charts_dest.exists():
@@ -676,8 +677,8 @@ def _version_rollback_stages(
     import shutil
 
     rollback_num = int(rollback_target)
-    # Stages from rollback target up to RESEARCH_DECISION (15) will be rerun
-    decision_num = int(Stage.RESEARCH_DECISION)
+    # Stages from rollback target up to ANALYSIS_DECISION (9) will be rerun
+    decision_num = int(Stage.ANALYSIS_DECISION)
 
     for stage_num in range(rollback_num, decision_num + 1):
         stage_dir = run_dir / f"stage-{stage_num:02d}"
@@ -693,9 +694,9 @@ def _version_rollback_stages(
 
 def _consecutive_empty_metrics(run_dir: Path, pivot_count: int) -> bool:
     """R6-4: Check if the current and previous REFINE cycles both produced empty metrics."""
-    # Check the most recent experiment_summary.json (stage-14) and its versioned predecessor
-    current = run_dir / "stage-14" / "experiment_summary.json"
-    prev = run_dir / f"stage-14_v{pivot_count}" / "experiment_summary.json"
+    # Check the most recent experiment_summary.json (stage 8) and its versioned predecessor
+    current = run_dir / "stage-08" / "experiment_summary.json"
+    prev = run_dir / f"stage-08_v{pivot_count}" / "experiment_summary.json"
     for path in (current, prev):
         if not path.exists():
             return False
@@ -725,10 +726,10 @@ def _check_experiment_quality(
     quality issues and the forced-PROCEED paper will likely be poor.
     """
     # Find most recent experiment summary
-    summary_path = run_dir / "stage-14" / "experiment_summary.json"
+    summary_path = run_dir / "stage-08" / "experiment_summary.json"
     if not summary_path.exists():
         for v in range(pivot_count, 0, -1):
-            alt = run_dir / f"stage-14_v{v}" / "experiment_summary.json"
+            alt = run_dir / f"stage-08_v{v}" / "experiment_summary.json"
             if alt.exists():
                 summary_path = alt
                 break
@@ -827,7 +828,7 @@ logger = logging.getLogger(__name__)
 
 def _read_quality_score(run_dir: Path) -> float | None:
     """Extract quality score from the most recent quality_report.json."""
-    report_path = run_dir / "stage-20" / "quality_report.json"
+    report_path = run_dir / "stage-11" / "quality_report.json"
     if not report_path.exists():
         return None
     try:
@@ -871,8 +872,8 @@ def execute_iterative_pipeline(
 ) -> dict[str, object]:
     """Run the full pipeline with iterative quality improvement.
 
-    After the first full pass (stages 1-22), if the quality gate score is below
-    *quality_threshold*, re-run stages 16-22 (paper writing + finalization) with
+    After the first full pass (stages 1-12), if the quality gate score is below
+    *quality_threshold*, re-run stages 10-12 (paper writing + finalization) with
     review feedback injected.  Stop when:
       - Score >= quality_threshold, OR
       - Score hasn't improved for *convergence_rounds* consecutive iterations, OR
@@ -884,7 +885,7 @@ def execute_iterative_pipeline(
     all_results: list[list[StageResult]] = []
 
     # --- First full pass ---
-    logger.info("Iteration 1/%d: running full pipeline (stages 1-22)", max_iterations)
+    logger.info("Iteration 1/%d: running full pipeline (stages 1-12)", max_iterations)
     results = execute_pipeline(
         run_dir=run_dir,
         run_id=f"{run_id}-iter1",
@@ -924,14 +925,14 @@ def execute_iterative_pipeline(
 
         # Write iteration context with feedback from reviews
         reviews_text = ""
-        reviews_path = run_dir / "stage-18" / "reviews.md"
+        reviews_path = run_dir / "stage-10" / "reviews.md"
         if reviews_path.exists():
             reviews_text = reviews_path.read_text(encoding="utf-8")
         _write_iteration_context(run_dir, iteration, reviews_text, score)
 
-        # Re-run from PAPER_OUTLINE (stage 16) through EXPORT_PUBLISH (stage 22)
+        # Re-run from PAPER_WRITE (stage 10) through EXPORT_VERIFY (stage 12)
         logger.info(
-            "Iteration %d/%d: re-running stages 16-22 with feedback",
+            "Iteration %d/%d: re-running stages 10-12 with feedback",
             iteration,
             max_iterations,
         )
@@ -940,7 +941,7 @@ def execute_iterative_pipeline(
             run_id=f"{run_id}-iter{iteration}",
             config=config,
             adapters=adapters,
-            from_stage=Stage.PAPER_OUTLINE,
+            from_stage=Stage.PAPER_WRITE,
             auto_approve_gates=auto_approve_gates,
             kb_root=kb_root,
         )
@@ -1040,14 +1041,10 @@ def _metaclaw_post_pipeline(
         for result in results:
             stage_num = int(getattr(result, "stage", 0))
             stage_name = {
-                1: "topic_init", 2: "problem_decompose", 3: "search_strategy",
-                4: "literature_collect", 5: "literature_screen", 6: "knowledge_extract",
-                7: "synthesis", 8: "hypothesis_gen", 9: "experiment_design",
-                10: "code_generation", 11: "resource_planning", 12: "experiment_run",
-                13: "iterative_refine", 14: "result_analysis", 15: "research_decision",
-                16: "paper_outline", 17: "paper_draft", 18: "peer_review",
-                19: "paper_revision", 20: "quality_gate", 21: "knowledge_archive",
-                22: "export_publish", 23: "citation_verify",
+                1: "research_scoping", 2: "search_collect", 3: "literature_screen",
+                4: "knowledge_extract", 5: "hypothesis_synthesis", 6: "experiment_design",
+                7: "code_setup", 8: "experiment_execute", 9: "analysis_decision",
+                10: "paper_write", 11: "quality_check", 12: "export_verify",
             }.get(stage_num, "")
             if not stage_name:
                 continue

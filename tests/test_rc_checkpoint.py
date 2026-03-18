@@ -25,23 +25,23 @@ from scholarclaw_engine.pipeline.stages import (
 
 class TestCheckpoint:
     def test_write_checkpoint(self, tmp_path: Path):
-        _write_checkpoint(tmp_path, Stage.LITERATURE_COLLECT, "test-run")
+        _write_checkpoint(tmp_path, Stage.KNOWLEDGE_EXTRACT, "test-run")
         cp = json.loads((tmp_path / "checkpoint.json").read_text())
         assert cp["last_completed_stage"] == 4
-        assert cp["last_completed_name"] == "LITERATURE_COLLECT"
+        assert cp["last_completed_name"] == "KNOWLEDGE_EXTRACT"
         assert cp["run_id"] == "test-run"
         assert "timestamp" in cp
 
     def test_read_checkpoint_returns_next_stage(self, tmp_path: Path):
-        _write_checkpoint(tmp_path, Stage.LITERATURE_COLLECT, "test-run")
+        _write_checkpoint(tmp_path, Stage.KNOWLEDGE_EXTRACT, "test-run")
         next_stage = read_checkpoint(tmp_path)
-        assert next_stage == Stage.LITERATURE_SCREEN
+        assert next_stage == Stage.HYPOTHESIS_SYNTHESIS
 
     def test_read_checkpoint_no_file(self, tmp_path: Path):
         assert read_checkpoint(tmp_path) is None
 
     def test_read_checkpoint_last_stage(self, tmp_path: Path):
-        _write_checkpoint(tmp_path, Stage.CITATION_VERIFY, "test-run")
+        _write_checkpoint(tmp_path, Stage.EXPORT_VERIFY, "test-run")
         assert read_checkpoint(tmp_path) is None
 
     def test_read_checkpoint_corrupted(self, tmp_path: Path):
@@ -55,29 +55,26 @@ class TestCheckpoint:
         assert read_checkpoint(tmp_path) is None
 
     def test_resume_from_checkpoint_uses_default(self, tmp_path: Path):
-        assert resume_from_checkpoint(tmp_path) == Stage.TOPIC_INIT
+        assert resume_from_checkpoint(tmp_path) == Stage.RESEARCH_SCOPING
 
     def test_resume_from_checkpoint_uses_next_stage(self, tmp_path: Path):
-        _write_checkpoint(tmp_path, Stage.SEARCH_STRATEGY, "run-x")
-        assert resume_from_checkpoint(tmp_path) == Stage.LITERATURE_COLLECT
+        _write_checkpoint(tmp_path, Stage.SEARCH_COLLECT, "run-x")
+        assert resume_from_checkpoint(tmp_path) == Stage.LITERATURE_SCREEN
 
 
 class TestNoncriticalStages:
-    def test_knowledge_archive_is_noncritical(self):
-        assert Stage.KNOWLEDGE_ARCHIVE in NONCRITICAL_STAGES
+    def test_export_verify_is_critical(self):
+        # EXPORT_VERIFY is critical — hallucinated refs must block export
+        assert Stage.EXPORT_VERIFY not in NONCRITICAL_STAGES
 
-    def test_citation_verify_is_critical(self):
-        # T3.4: CITATION_VERIFY is now critical — hallucinated refs must block export
-        assert Stage.CITATION_VERIFY not in NONCRITICAL_STAGES
+    def test_research_scoping_is_critical(self):
+        assert Stage.RESEARCH_SCOPING not in NONCRITICAL_STAGES
 
-    def test_topic_init_is_critical(self):
-        assert Stage.TOPIC_INIT not in NONCRITICAL_STAGES
+    def test_paper_write_is_critical(self):
+        assert Stage.PAPER_WRITE not in NONCRITICAL_STAGES
 
-    def test_paper_draft_is_critical(self):
-        assert Stage.PAPER_DRAFT not in NONCRITICAL_STAGES
-
-    def test_stage_sequence_still_ends_with_citation_verify(self):
-        assert STAGE_SEQUENCE[-1] == Stage.CITATION_VERIFY
+    def test_stage_sequence_still_ends_with_export_verify(self):
+        assert STAGE_SEQUENCE[-1] == Stage.EXPORT_VERIFY
 
 
 class TestContentMetrics:
@@ -89,7 +86,7 @@ class TestContentMetrics:
         assert metrics["degraded_sources"] == []
 
     def test_metrics_with_draft(self, tmp_path: Path):
-        draft_dir = tmp_path / "stage-17"
+        draft_dir = tmp_path / "stage-10"
         draft_dir.mkdir()
         (draft_dir / "paper_draft.md").write_text(
             "This is a real academic paper about transformers and attention mechanisms. We propose a novel method for improving efficiency.",
@@ -100,7 +97,7 @@ class TestContentMetrics:
         assert cast(float, metrics["template_ratio"]) < 0.5
 
     def test_metrics_with_verification(self, tmp_path: Path):
-        verify_dir = tmp_path / "stage-23"
+        verify_dir = tmp_path / "stage-12"
         verify_dir.mkdir()
         (verify_dir / "verification_report.json").write_text(
             json.dumps(
@@ -123,14 +120,14 @@ class TestContentMetrics:
         assert metrics["verified_citations"] == 8
         assert metrics["citation_verify_score"] == 0.8
 
-    def test_metrics_no_stage23(self, tmp_path: Path):
+    def test_metrics_no_stage12(self, tmp_path: Path):
         metrics = _collect_content_metrics(tmp_path)
         assert metrics["citation_verify_score"] is None
 
     def test_summary_includes_content_metrics(self, tmp_path: Path):
         results = [
             StageResult(
-                stage=Stage.TOPIC_INIT,
+                stage=Stage.RESEARCH_SCOPING,
                 status=StageStatus.DONE,
                 artifacts=("topic.json",),
             ),
@@ -138,7 +135,7 @@ class TestContentMetrics:
         summary = _build_pipeline_summary(
             run_id="test",
             results=results,
-            from_stage=Stage.TOPIC_INIT,
+            from_stage=Stage.RESEARCH_SCOPING,
             run_dir=tmp_path,
         )
         assert "content_metrics" in summary

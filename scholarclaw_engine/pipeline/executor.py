@@ -1400,7 +1400,7 @@ Investigate the topic with emphasis on reproducible methods and measurable outco
         logger.info("Docker sandbox: PyTorch pre-installed in container image")
 
     return StageResult(
-        stage=Stage.TOPIC_INIT,
+        stage=Stage.RESEARCH_SCOPING,
         status=StageStatus.DONE,
         artifacts=("goal.md", "hardware_profile.json"),
         evidence_refs=("stage-01/goal.md", "stage-01/hardware_profile.json"),
@@ -1500,7 +1500,7 @@ Derived from `goal.md` for topic: {config.research.topic}
             logger.debug("IMP-35: Topic evaluation skipped (non-blocking)")
 
     return StageResult(
-        stage=Stage.PROBLEM_DECOMPOSE,
+        stage=Stage.RESEARCH_SCOPING,
         status=StageStatus.DONE,
         artifacts=("problem_tree.md",),
         evidence_refs=("stage-02/problem_tree.md",),
@@ -1725,7 +1725,7 @@ def _execute_search_strategy(
         encoding="utf-8",
     )
     return StageResult(
-        stage=Stage.SEARCH_STRATEGY,
+        stage=Stage.SEARCH_COLLECT,
         status=StageStatus.DONE,
         artifacts=("search_plan.yaml", "sources.json", "queries.json"),
         evidence_refs=(
@@ -1977,7 +1977,7 @@ def _execute_literature_collect(
     artifacts.append("search_meta.json")
 
     return StageResult(
-        stage=Stage.LITERATURE_COLLECT,
+        stage=Stage.SEARCH_COLLECT,
         status=StageStatus.DONE,
         artifacts=tuple(artifacts),
         evidence_refs=tuple(f"stage-04/{a}" for a in artifacts),
@@ -2223,7 +2223,7 @@ Under-reported failure behavior under distribution shift.
 """
     (stage_dir / "synthesis.md").write_text(synthesis_md, encoding="utf-8")
     return StageResult(
-        stage=Stage.SYNTHESIS,
+        stage=Stage.HYPOTHESIS_SYNTHESIS,
         status=StageStatus.DONE,
         artifacts=("synthesis.md",),
         evidence_refs=("stage-07/synthesis.md",),
@@ -2340,7 +2340,7 @@ def _execute_hypothesis_gen(
         logger.warning("Novelty check failed (non-blocking)", exc_info=True)
 
     return StageResult(
-        stage=Stage.HYPOTHESIS_GEN,
+        stage=Stage.HYPOTHESIS_SYNTHESIS,
         status=StageStatus.DONE,
         artifacts=("hypotheses.md",) + novelty_artifacts,
         evidence_refs=("stage-08/hypotheses.md",),
@@ -3077,7 +3077,7 @@ def _execute_code_generation(
                 encoding="utf-8",
             )
             return StageResult(
-                stage=Stage.CODE_GENERATION,
+                stage=Stage.CODE_SETUP,
                 status=StageStatus.FAILED,
                 artifacts=("validation_report.md",),
                 evidence_refs=(),
@@ -3481,7 +3481,7 @@ Multi-file experiment project with {len(files)} file(s): {file_list}
         artifacts.append("validation_report.md")
 
     return StageResult(
-        stage=Stage.CODE_GENERATION,
+        stage=Stage.CODE_SETUP,
         status=StageStatus.DONE,
         artifacts=tuple(artifacts),
         evidence_refs=tuple(f"stage-10/{a}" for a in artifacts),
@@ -3541,7 +3541,7 @@ def _execute_resource_planning(
         json.dumps(schedule, indent=2), encoding="utf-8"
     )
     return StageResult(
-        stage=Stage.RESOURCE_PLANNING,
+        stage=Stage.CODE_SETUP,
         status=StageStatus.DONE,
         artifacts=("schedule.json",),
         evidence_refs=("stage-11/schedule.json",),
@@ -3767,7 +3767,7 @@ def _execute_experiment_run(
                 json.dumps(payload, indent=2), encoding="utf-8"
             )
     return StageResult(
-        stage=Stage.EXPERIMENT_RUN,
+        stage=Stage.EXPERIMENT_EXECUTE,
         status=StageStatus.DONE,
         artifacts=("runs/",),
         evidence_refs=("stage-12/runs/",),
@@ -3833,7 +3833,7 @@ def _execute_iterative_refine(
             json.dumps(log, indent=2), encoding="utf-8"
         )
         return StageResult(
-            stage=Stage.ITERATIVE_REFINE,
+            stage=Stage.EXPERIMENT_EXECUTE,
             status=StageStatus.DONE,
             artifacts=("refinement_log.json",),
             evidence_refs=(),
@@ -4059,7 +4059,7 @@ def _execute_iterative_refine(
         )
         artifacts = ("refinement_log.json", "experiment_final/")
         return StageResult(
-            stage=Stage.ITERATIVE_REFINE,
+            stage=Stage.EXPERIMENT_EXECUTE,
             status=StageStatus.DONE,
             artifacts=artifacts,
             evidence_refs=tuple(f"stage-13/{a}" for a in artifacts),
@@ -4383,7 +4383,7 @@ def _execute_iterative_refine(
         if isinstance(entry, dict) and isinstance(entry.get("version_dir"), str)
     )
     return StageResult(
-        stage=Stage.ITERATIVE_REFINE,
+        stage=Stage.EXPERIMENT_EXECUTE,
         status=StageStatus.DONE,
         artifacts=tuple(artifacts),
         evidence_refs=tuple(f"stage-13/{a}" for a in artifacts),
@@ -4967,7 +4967,7 @@ Generated: {_utcnow_iso()}
             logger.warning("Stage 14: Early chart generation failed: %s", _chart_exc)
 
     return StageResult(
-        stage=Stage.RESULT_ANALYSIS,
+        stage=Stage.ANALYSIS_DECISION,
         status=StageStatus.DONE,
         artifacts=tuple(artifacts),
         evidence_refs=tuple(f"stage-14/{a}" for a in artifacts),
@@ -5112,7 +5112,7 @@ Generated: {_utcnow_iso()}
     logger.info("Research decision: %s", decision)
 
     return StageResult(
-        stage=Stage.RESEARCH_DECISION,
+        stage=Stage.ANALYSIS_DECISION,
         status=StageStatus.DONE,
         artifacts=("decision.md", "decision_structured.json"),
         evidence_refs=("stage-15/decision.md",),
@@ -5202,7 +5202,7 @@ def _execute_paper_outline(
         outline = _default_paper_outline(config.research.topic)
     (stage_dir / "outline.md").write_text(outline, encoding="utf-8")
     return StageResult(
-        stage=Stage.PAPER_OUTLINE,
+        stage=Stage.PAPER_WRITE,
         status=StageStatus.DONE,
         artifacts=("outline.md",),
         evidence_refs=("stage-16/outline.md",),
@@ -6512,7 +6512,7 @@ def _execute_paper_draft(
             encoding="utf-8",
         )
         return StageResult(
-            stage=Stage.PAPER_DRAFT,
+            stage=Stage.PAPER_WRITE,
             status=StageStatus.FAILED,
             artifacts=("paper_draft.md",),
             evidence_refs=(),
@@ -6538,7 +6538,7 @@ def _execute_paper_draft(
                 encoding="utf-8",
             )
             return StageResult(
-                stage=Stage.PAPER_DRAFT,
+                stage=Stage.PAPER_WRITE,
                 status=StageStatus.FAILED,
                 artifacts=("paper_draft.md",),
                 evidence_refs=(),
@@ -6927,7 +6927,7 @@ Generated: {_utcnow_iso()}
     _validate_draft_quality(draft, stage_dir=stage_dir)
 
     return StageResult(
-        stage=Stage.PAPER_DRAFT,
+        stage=Stage.PAPER_WRITE,
         status=StageStatus.DONE,
         artifacts=("paper_draft.md",),
         evidence_refs=("stage-17/paper_draft.md",),
@@ -7066,7 +7066,7 @@ def _execute_peer_review(
 """
     (stage_dir / "reviews.md").write_text(reviews, encoding="utf-8")
     return StageResult(
-        stage=Stage.PEER_REVIEW,
+        stage=Stage.QUALITY_CHECK,
         status=StageStatus.DONE,
         artifacts=("reviews.md",),
         evidence_refs=("stage-18/reviews.md",),
@@ -7221,7 +7221,7 @@ def _execute_paper_revision(
         revised = draft
     (stage_dir / "paper_revised.md").write_text(revised, encoding="utf-8")
     return StageResult(
-        stage=Stage.PAPER_REVISION,
+        stage=Stage.QUALITY_CHECK,
         status=StageStatus.DONE,
         artifacts=("paper_revised.md",),
         evidence_refs=("stage-19/paper_revised.md",),
@@ -7330,7 +7330,7 @@ def _execute_quality_gate(
             score, threshold, verdict,
         )
         return StageResult(
-            stage=Stage.QUALITY_GATE,
+            stage=Stage.QUALITY_CHECK,
             status=StageStatus.FAILED,
             artifacts=("quality_report.json",),
             evidence_refs=("stage-20/quality_report.json",),
@@ -7343,7 +7343,7 @@ def _execute_quality_gate(
         score, threshold,
     )
     return StageResult(
-        stage=Stage.QUALITY_GATE,
+        stage=Stage.QUALITY_CHECK,
         status=StageStatus.DONE,
         artifacts=("quality_report.json",),
         evidence_refs=("stage-20/quality_report.json",),
@@ -7415,7 +7415,7 @@ Generated: {_utcnow_iso()}
         json.dumps(index, indent=2), encoding="utf-8"
     )
     return StageResult(
-        stage=Stage.KNOWLEDGE_ARCHIVE,
+        stage=Stage.EXPORT_VERIFY,
         status=StageStatus.DONE,
         artifacts=("archive.md", "bundle_index.json"),
         evidence_refs=("stage-21/archive.md", "stage-21/bundle_index.json"),
@@ -7985,7 +7985,7 @@ def _execute_export_publish(
         logger.debug("Stage 22: Framework diagram prompt generation skipped: %s", exc)
 
     return StageResult(
-        stage=Stage.EXPORT_PUBLISH,
+        stage=Stage.EXPORT_VERIFY,
         status=StageStatus.DONE,
         artifacts=tuple(artifacts),
         evidence_refs=tuple(f"stage-22/{a}" for a in artifacts),
@@ -8124,12 +8124,12 @@ def _execute_citation_verify(
         )
         (stage_dir / "references_verified.bib").write_text("", encoding="utf-8")
         return StageResult(
-            stage=Stage.CITATION_VERIFY,
+            stage=Stage.EXPORT_VERIFY,
             status=StageStatus.DONE,
             artifacts=("verification_report.json", "references_verified.bib"),
             evidence_refs=(
-                "stage-23/verification_report.json",
-                "stage-23/references_verified.bib",
+                "stage-12/verification_report.json",
+                "stage-12/references_verified.bib",
             ),
         )
 
@@ -8189,13 +8189,13 @@ def _execute_citation_verify(
         for cr in overflow:
             low_relevance_keys.add(cr.cite_key)
         logger.info(
-            "Stage 23: Hard cap applied, dropping %d additional low-relevance citations",
+            "Stage 12: Hard cap applied, dropping %d additional low-relevance citations",
             len(overflow),
         )
 
     if low_relevance_keys:
         logger.info(
-            "Stage 23: Filtering %d low-relevance citations (threshold=%.1f, cap=%d): %s",
+            "Stage 12: Filtering %d low-relevance citations (threshold=%.1f, cap=%d): %s",
             len(low_relevance_keys),
             RELEVANCE_THRESHOLD,
             MAX_CITATIONS,
@@ -8217,7 +8217,7 @@ def _execute_citation_verify(
     verified_count = len(re.findall(r"@\w+\{", verified_bib))
     if original_count > 0 and verified_count < original_count * 0.5:
         logger.warning(
-            "Stage 23: Verification stripped %d→%d entries (>50%% loss). "
+            "Stage 12: Verification stripped %d→%d entries (>50%% loss). "
             "Keeping original bib to avoid breaking references.",
             original_count, verified_count,
         )
@@ -8238,7 +8238,7 @@ def _execute_citation_verify(
         if _uncited_vbib:
             verified_bib = _remove_bibtex_entries(verified_bib, _uncited_vbib)
             logger.info(
-                "Stage 23: Pruned %d uncited entries from verified bib "
+                "Stage 12: Pruned %d uncited entries from verified bib "
                 "(kept %d)",
                 len(_uncited_vbib),
                 len(_vbib_keys) - len(_uncited_vbib),
@@ -8257,7 +8257,7 @@ def _execute_citation_verify(
         artifacts.append("paper_final_verified.md")
 
     logger.info(
-        "Stage 23 citation verify: %d total, %d verified, %d suspicious, "
+        "Stage 12 citation verify: %d total, %d verified, %d suspicious, "
         "%d hallucinated, %d skipped (integrity=%.1f%%)",
         report.total,
         report.verified,
@@ -8268,37 +8268,113 @@ def _execute_citation_verify(
     )
 
     return StageResult(
-        stage=Stage.CITATION_VERIFY,
+        stage=Stage.EXPORT_VERIFY,
         status=StageStatus.DONE,
         artifacts=tuple(artifacts),
-        evidence_refs=tuple(f"stage-23/{a}" for a in artifacts),
+        evidence_refs=tuple(f"stage-12/{a}" for a in artifacts),
     )
 
 
+def _execute_research_scoping(run_dir, config, llm, **kw):
+    """Merged: topic_init + problem_decompose."""
+    r1 = _execute_topic_init(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.RESEARCH_SCOPING, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_problem_decompose(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.RESEARCH_SCOPING, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_search_collect(run_dir, config, llm, **kw):
+    """Merged: search_strategy + literature_collect."""
+    r1 = _execute_search_strategy(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.SEARCH_COLLECT, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_literature_collect(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.SEARCH_COLLECT, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_hypothesis_synthesis(run_dir, config, llm, **kw):
+    """Merged: synthesis + hypothesis_gen."""
+    r1 = _execute_synthesis(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.HYPOTHESIS_SYNTHESIS, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_hypothesis_gen(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.HYPOTHESIS_SYNTHESIS, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_code_setup(run_dir, config, llm, **kw):
+    """Merged: code_generation + resource_planning."""
+    r1 = _execute_code_generation(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.CODE_SETUP, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_resource_planning(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.CODE_SETUP, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_experiment_execute(run_dir, config, llm, **kw):
+    """Merged: experiment_run + iterative_refine."""
+    r1 = _execute_experiment_run(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.EXPERIMENT_EXECUTE, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_iterative_refine(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.EXPERIMENT_EXECUTE, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_analysis_decision(run_dir, config, llm, **kw):
+    """Merged: result_analysis + research_decision."""
+    r1 = _execute_result_analysis(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.ANALYSIS_DECISION, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_research_decision(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.ANALYSIS_DECISION, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_paper_write(run_dir, config, llm, **kw):
+    """Merged: paper_outline + paper_draft."""
+    r1 = _execute_paper_outline(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.PAPER_WRITE, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_paper_draft(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.PAPER_WRITE, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+
+
+def _execute_quality_check(run_dir, config, llm, **kw):
+    """Merged: peer_review + paper_revision + quality_gate."""
+    r1 = _execute_peer_review(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.QUALITY_CHECK, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_paper_revision(run_dir, config, llm, **kw)
+    if r2.status != StageStatus.DONE:
+        return StageResult(stage=Stage.QUALITY_CHECK, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+    r3 = _execute_quality_gate(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.QUALITY_CHECK, status=r3.status, artifacts=r1.artifacts + r2.artifacts + r3.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()) + (r3.evidence_refs or ()))
+
+
+def _execute_export_verify(run_dir, config, llm, **kw):
+    """Merged: knowledge_archive + export_publish + citation_verify."""
+    r1 = _execute_knowledge_archive(run_dir, config, llm, **kw)
+    if r1.status != StageStatus.DONE:
+        return StageResult(stage=Stage.EXPORT_VERIFY, status=r1.status, artifacts=r1.artifacts, evidence_refs=r1.evidence_refs)
+    r2 = _execute_export_publish(run_dir, config, llm, **kw)
+    if r2.status != StageStatus.DONE:
+        return StageResult(stage=Stage.EXPORT_VERIFY, status=r2.status, artifacts=r1.artifacts + r2.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()))
+    r3 = _execute_citation_verify(run_dir, config, llm, **kw)
+    return StageResult(stage=Stage.EXPORT_VERIFY, status=r3.status, artifacts=r1.artifacts + r2.artifacts + r3.artifacts, evidence_refs=(r1.evidence_refs or ()) + (r2.evidence_refs or ()) + (r3.evidence_refs or ()))
+
+
 _STAGE_EXECUTORS: dict[Stage, Callable[..., StageResult]] = {
-    Stage.TOPIC_INIT: _execute_topic_init,
-    Stage.PROBLEM_DECOMPOSE: _execute_problem_decompose,
-    Stage.SEARCH_STRATEGY: _execute_search_strategy,
-    Stage.LITERATURE_COLLECT: _execute_literature_collect,
+    Stage.RESEARCH_SCOPING: _execute_research_scoping,
+    Stage.SEARCH_COLLECT: _execute_search_collect,
     Stage.LITERATURE_SCREEN: _execute_literature_screen,
     Stage.KNOWLEDGE_EXTRACT: _execute_knowledge_extract,
-    Stage.SYNTHESIS: _execute_synthesis,
-    Stage.HYPOTHESIS_GEN: _execute_hypothesis_gen,
+    Stage.HYPOTHESIS_SYNTHESIS: _execute_hypothesis_synthesis,
     Stage.EXPERIMENT_DESIGN: _execute_experiment_design,
-    Stage.CODE_GENERATION: _execute_code_generation,
-    Stage.RESOURCE_PLANNING: _execute_resource_planning,
-    Stage.EXPERIMENT_RUN: _execute_experiment_run,
-    Stage.ITERATIVE_REFINE: _execute_iterative_refine,
-    Stage.RESULT_ANALYSIS: _execute_result_analysis,
-    Stage.RESEARCH_DECISION: _execute_research_decision,
-    Stage.PAPER_OUTLINE: _execute_paper_outline,
-    Stage.PAPER_DRAFT: _execute_paper_draft,
-    Stage.PEER_REVIEW: _execute_peer_review,
-    Stage.PAPER_REVISION: _execute_paper_revision,
-    Stage.QUALITY_GATE: _execute_quality_gate,
-    Stage.KNOWLEDGE_ARCHIVE: _execute_knowledge_archive,
-    Stage.EXPORT_PUBLISH: _execute_export_publish,
-    Stage.CITATION_VERIFY: _execute_citation_verify,
+    Stage.CODE_SETUP: _execute_code_setup,
+    Stage.EXPERIMENT_EXECUTE: _execute_experiment_execute,
+    Stage.ANALYSIS_DECISION: _execute_analysis_decision,
+    Stage.PAPER_WRITE: _execute_paper_write,
+    Stage.QUALITY_CHECK: _execute_quality_check,
+    Stage.EXPORT_VERIFY: _execute_export_verify,
 }
 
 

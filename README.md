@@ -76,17 +76,14 @@ A single run produces a self-contained research artifact:
 
 ## Under the Hood
 
-The pipeline is split into **phases**, each responsible for one concern:
+The pipeline is split into **five phases**, each responsible for one concern:
 
 ```
- Scoping        → break the topic into structured sub-questions
- Literature     → search arXiv / Semantic Scholar / OpenAlex, screen, extract
- Synthesis      → cluster findings, spot gaps, form hypotheses
- Design         → plan experiments, generate hardware-aware code
- Execution      → run in sandbox, detect failures, auto-repair
- Analysis       → evaluate results, decide: continue / adjust / pivot
- Writing        → outline → draft → review → revise
- Finalization   → quality check, LaTeX export, citation audit
+ Discovery       → scope the problem, search literature, screen, extract knowledge
+ Ideation        → synthesize findings, form hypotheses, design experiments, generate code
+ Experimentation → run in sandbox, auto-repair, analyze results, decide: continue or pivot
+ Composition     → draft the paper, run peer review, revise
+ Delivery        → quality check, LaTeX export, citation audit
 ```
 
 Two feedback loops keep the pipeline from going off the rails:
@@ -210,7 +207,7 @@ export:
   authors: "Anonymous"
 
 security:
-  hitl_required_stages: [5, 9, 20]   # gate stages
+  hitl_required_stages: [3, 6, 11]   # gate stages
   allow_publish_without_approval: false
 ```
 </details>
@@ -222,7 +219,7 @@ security:
 ```bash
 scholarclaw run --topic "..." --auto-approve          # full pipeline
 scholarclaw run --config my.yaml --topic "..."        # custom config
-scholarclaw run --from-stage PAPER_OUTLINE             # resume mid-pipeline
+scholarclaw run --from-stage PAPER_WRITE               # resume mid-pipeline
 scholarclaw validate --config my.yaml                  # dry-run config check
 ```
 

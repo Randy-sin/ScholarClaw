@@ -6,8 +6,8 @@ from scholarclaw_engine.pipeline.contracts import CONTRACTS, StageContract
 from scholarclaw_engine.pipeline.stages import GATE_STAGES, STAGE_SEQUENCE, Stage
 
 
-def test_contracts_dict_has_exactly_23_entries():
-    assert len(CONTRACTS) == 23
+def test_contracts_dict_has_exactly_12_entries():
+    assert len(CONTRACTS) == 12
 
 
 def test_every_stage_has_matching_contract_entry():
@@ -46,7 +46,7 @@ def test_max_retries_is_non_negative_for_all_contracts(contract: StageContract):
 def test_gate_stages_have_expected_max_retries():
     assert CONTRACTS[Stage.LITERATURE_SCREEN].max_retries == 0
     assert CONTRACTS[Stage.EXPERIMENT_DESIGN].max_retries == 0
-    assert CONTRACTS[Stage.QUALITY_GATE].max_retries == 0
+    assert CONTRACTS[Stage.QUALITY_CHECK].max_retries == 0
 
 
 @pytest.mark.parametrize("stage", tuple(GATE_STAGES))
@@ -54,17 +54,18 @@ def test_gate_stage_contracts_are_never_retried(stage: Stage):
     assert CONTRACTS[stage].max_retries == 0
 
 
-def test_topic_init_contract_has_expected_input_output_files():
-    contract = CONTRACTS[Stage.TOPIC_INIT]
+def test_research_scoping_contract_has_expected_input_output_files():
+    contract = CONTRACTS[Stage.RESEARCH_SCOPING]
 
     assert contract.input_files == ()
-    assert contract.output_files == ("goal.md", "hardware_profile.json")
+    assert contract.output_files == ("goal.md", "hardware_profile.json", "problem_tree.md")
 
 
-def test_export_publish_contract_has_expected_outputs():
-    contract = CONTRACTS[Stage.EXPORT_PUBLISH]
+def test_export_verify_contract_has_expected_outputs():
+    contract = CONTRACTS[Stage.EXPORT_VERIFY]
 
-    assert contract.output_files == ("paper_final.md", "code/")
+    assert "paper_final.md" in contract.output_files
+    assert "code/" in contract.output_files
 
 
 @pytest.mark.parametrize("contract", tuple(CONTRACTS.values()))

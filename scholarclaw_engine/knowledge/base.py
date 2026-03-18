@@ -118,28 +118,18 @@ def write_kb_entry(
 # ---------------------------------------------------------------------------
 
 KB_CATEGORY_MAP: dict[int, str] = {
-    1: "questions",
-    2: "questions",
-    3: "decisions",
-    4: "literature",
-    5: "literature",
-    6: "literature",
-    7: "findings",
-    8: "questions",
-    9: "decisions",
-    10: "experiments",
-    11: "decisions",
-    12: "experiments",
-    13: "experiments",
-    14: "findings",
-    15: "decisions",
-    16: "reviews",
-    17: "reviews",
-    18: "reviews",
-    19: "reviews",
-    20: "decisions",
-    21: "decisions",
-    22: "reviews",
+    1: "questions",   # RESEARCH_SCOPING
+    2: "literature",  # SEARCH_COLLECT
+    3: "literature",  # LITERATURE_SCREEN
+    4: "literature",  # KNOWLEDGE_EXTRACT
+    5: "findings",    # HYPOTHESIS_SYNTHESIS
+    6: "decisions",   # EXPERIMENT_DESIGN
+    7: "experiments", # CODE_SETUP
+    8: "experiments", # EXPERIMENT_EXECUTE
+    9: "findings",    # ANALYSIS_DECISION
+    10: "reviews",    # PAPER_WRITE
+    11: "decisions",  # QUALITY_CHECK
+    12: "reviews",    # EXPORT_VERIFY
 }
 
 

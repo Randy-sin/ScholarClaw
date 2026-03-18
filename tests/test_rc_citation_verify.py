@@ -582,26 +582,28 @@ class TestCitationResultSerialization:
         assert d["matched_paper"]["title"] == "Found Paper"
 
 
-class TestStage23Integration:
+class TestStage12Integration:
+    """Citation verification is part of EXPORT_VERIFY (stage 12)."""
+
     def test_stage_exists_in_enum(self) -> None:
         from scholarclaw_engine.pipeline.stages import Stage
 
-        assert hasattr(Stage, "CITATION_VERIFY")
-        assert Stage.CITATION_VERIFY == 23
+        assert hasattr(Stage, "EXPORT_VERIFY")
+        assert Stage.EXPORT_VERIFY == 12
 
     def test_stage_in_sequence(self) -> None:
         from scholarclaw_engine.pipeline.stages import Stage, STAGE_SEQUENCE, NEXT_STAGE
 
-        assert Stage.CITATION_VERIFY in STAGE_SEQUENCE
-        assert NEXT_STAGE[Stage.EXPORT_PUBLISH] == Stage.CITATION_VERIFY
-        assert NEXT_STAGE[Stage.CITATION_VERIFY] is None
+        assert Stage.EXPORT_VERIFY in STAGE_SEQUENCE
+        assert NEXT_STAGE[Stage.QUALITY_CHECK] == Stage.EXPORT_VERIFY
+        assert NEXT_STAGE[Stage.EXPORT_VERIFY] is None
 
     def test_contract_exists(self) -> None:
         from scholarclaw_engine.pipeline.contracts import CONTRACTS
         from scholarclaw_engine.pipeline.stages import Stage
 
-        assert Stage.CITATION_VERIFY in CONTRACTS
-        contract = CONTRACTS[Stage.CITATION_VERIFY]
+        assert Stage.EXPORT_VERIFY in CONTRACTS
+        contract = CONTRACTS[Stage.EXPORT_VERIFY]
         assert "verification_report.json" in contract.output_files
         assert "references_verified.bib" in contract.output_files
 
@@ -609,15 +611,15 @@ class TestStage23Integration:
         from scholarclaw_engine.pipeline.executor import _STAGE_EXECUTORS
         from scholarclaw_engine.pipeline.stages import Stage
 
-        assert Stage.CITATION_VERIFY in _STAGE_EXECUTORS
+        assert Stage.EXPORT_VERIFY in _STAGE_EXECUTORS
 
     def test_phase_map(self) -> None:
         from scholarclaw_engine.pipeline.stages import PHASE_MAP, Stage
 
-        finalization_stages = PHASE_MAP["H: Finalization"]
-        assert Stage.CITATION_VERIFY in finalization_stages
+        delivery_stages = PHASE_MAP["Delivery"]
+        assert Stage.EXPORT_VERIFY in delivery_stages
 
-    def test_total_stages_is_23(self) -> None:
+    def test_total_stages_is_12(self) -> None:
         from scholarclaw_engine.pipeline.stages import STAGE_SEQUENCE
 
-        assert len(STAGE_SEQUENCE) == 23
+        assert len(STAGE_SEQUENCE) == 12

@@ -132,9 +132,9 @@ def test_obsidian_enhancements_with_no_tags_or_links_returns_empty():
     assert _obsidian_enhancements(entry) == ""
 
 
-def test_kb_category_map_has_exactly_22_stage_entries():
-    assert len(KB_CATEGORY_MAP) == 22
-    assert set(KB_CATEGORY_MAP) == set(range(1, 23))
+def test_kb_category_map_has_exactly_12_stage_entries():
+    assert len(KB_CATEGORY_MAP) == 12
+    assert set(KB_CATEGORY_MAP) == set(range(1, 13))
 
 
 def test_kb_category_map_values_are_valid_categories():
@@ -151,11 +151,11 @@ def test_kb_category_map_values_are_valid_categories():
 
 def test_write_stage_to_kb_places_entry_in_mapped_category(tmp_path: Path):
     kb_root = _kb_root(tmp_path)
-    stage_dir = tmp_path / "stage-10"
+    stage_dir = tmp_path / "stage-08"
     stage_dir.mkdir()
     (stage_dir / "run.md").write_text("exp content", encoding="utf-8")
     paths = write_stage_to_kb(
-        kb_root, 10, "experiment_cycle", "run-1", ["run.md"], stage_dir
+        kb_root, 8, "experiment_cycle", "run-1", ["run.md"], stage_dir
     )
     assert len(paths) == 1
     assert paths[0].parent.name == "experiments"
@@ -163,36 +163,36 @@ def test_write_stage_to_kb_places_entry_in_mapped_category(tmp_path: Path):
 
 def test_write_stage_to_kb_reads_artifact_file_contents(tmp_path: Path):
     kb_root = _kb_root(tmp_path)
-    stage_dir = tmp_path / "stage-04"
+    stage_dir = tmp_path / "stage-02"
     stage_dir.mkdir()
     (stage_dir / "lit.md").write_text("paper A\npaper B", encoding="utf-8")
     path = write_stage_to_kb(
-        kb_root, 4, "literature_search", "run-1", ["lit.md"], stage_dir
+        kb_root, 2, "literature_search", "run-1", ["lit.md"], stage_dir
     )[0]
     text = path.read_text(encoding="utf-8")
     assert "paper A" in text
-    assert "stage-04/lit.md" in text
+    assert "stage-02/lit.md" in text
 
 
 def test_write_stage_to_kb_handles_missing_artifacts_gracefully(tmp_path: Path):
     kb_root = _kb_root(tmp_path)
-    stage_dir = tmp_path / "stage-05"
+    stage_dir = tmp_path / "stage-02"
     stage_dir.mkdir()
     path = write_stage_to_kb(
-        kb_root, 5, "literature_extract", "run-2", ["missing.md"], stage_dir
+        kb_root, 2, "literature_extract", "run-2", ["missing.md"], stage_dir
     )[0]
     text = path.read_text(encoding="utf-8")
-    assert "Stage 05 (literature_extract) completed" in text
+    assert "Stage 04 (literature_extract) completed" in text
 
 
 def test_write_stage_to_kb_truncates_large_artifact_content(tmp_path: Path):
     kb_root = _kb_root(tmp_path)
-    stage_dir = tmp_path / "stage-12"
+    stage_dir = tmp_path / "stage-07"
     stage_dir.mkdir()
     large_text = "x" * 6000
     (stage_dir / "big.txt").write_text(large_text, encoding="utf-8")
     path = write_stage_to_kb(
-        kb_root, 12, "experiment_implement", "run-3", ["big.txt"], stage_dir
+        kb_root, 7, "experiment_implement", "run-3", ["big.txt"], stage_dir
     )[0]
     text = path.read_text(encoding="utf-8")
     assert "... (truncated, see full artifact)" in text
@@ -201,17 +201,17 @@ def test_write_stage_to_kb_truncates_large_artifact_content(tmp_path: Path):
 
 def test_write_stage_to_kb_directory_artifact_records_listing(tmp_path: Path):
     kb_root = _kb_root(tmp_path)
-    stage_dir = tmp_path / "stage-13"
+    stage_dir = tmp_path / "stage-08"
     artifact_dir = stage_dir / "outputs"
     artifact_dir.mkdir(parents=True)
     (artifact_dir / "a.txt").write_text("a", encoding="utf-8")
     (artifact_dir / "b.txt").write_text("b", encoding="utf-8")
     path = write_stage_to_kb(
-        kb_root, 13, "experiment_execute", "run-4", ["outputs/"], stage_dir
+        kb_root, 8, "experiment_execute", "run-4", ["outputs/"], stage_dir
     )[0]
     text = path.read_text(encoding="utf-8")
     assert "Directory with 2 files: a.txt, b.txt" in text
-    assert "stage-13/outputs/" in text
+    assert "stage-08/outputs/" in text
 
 
 def test_generate_weekly_report_creates_file_in_reviews_category(tmp_path: Path):
